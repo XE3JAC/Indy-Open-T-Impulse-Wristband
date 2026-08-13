@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Manual de uso de Indy Open T-Impulse Wristband.">
+<title>Indy Open T-Impulse Wristband — Manual</title>
+<style>
+:root{--bg:#f4f8f9;--panel:#fff;--text:#17363b;--muted:#61777c;--accent:#0e7c86;--dark:#0b2d33;--line:#d9e5e7;--soft:#eaf6f7}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.65}
+a{color:var(--accent)}
+.layout{display:grid;grid-template-columns:280px minmax(0,1fr);min-height:100vh}
+aside{position:sticky;top:0;height:100vh;overflow:auto;background:var(--dark);color:#e8f5f6;padding:26px 20px}
+.brand{font-size:1.2rem;font-weight:800;margin-bottom:22px}.brand small{display:block;color:#9fc5ca;font-weight:500}
+nav a{display:block;text-decoration:none;color:#d7ecef;padding:7px 9px;border-radius:8px;font-size:.91rem}nav a:hover{background:#16444b}
+.hero{background:linear-gradient(135deg,#0b6670,#12939d);color:#fff;padding:64px clamp(24px,6vw,80px)}.hero>div,.content{max-width:1050px;margin:auto}
+.hero h1{font-size:clamp(2.4rem,6vw,4.8rem);margin:0;line-height:1.02}.hero p{max-width:760px;font-size:1.1rem}
+.tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}.tag{border:1px solid #ffffff55;background:#ffffff18;padding:6px 10px;border-radius:999px}
+.content{padding:44px clamp(20px,5vw,70px) 90px}section{margin-bottom:56px;scroll-margin-top:16px}
+h2{color:#096a73;border-bottom:1px solid var(--line);padding-bottom:12px;font-size:2rem}h3{color:#0d7079;margin-top:30px}
+.note{background:var(--soft);border-left:4px solid var(--accent);padding:14px 17px;border-radius:10px;margin:18px 0}.warn{background:#fff3d7;border-left-color:#d6a125}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}.card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:17px}
+table{width:100%;border-collapse:collapse;background:#fff}th,td{padding:11px 12px;border:1px solid var(--line);text-align:left;vertical-align:top}th{background:#e8f3f4}
+.arch{background:#fff;border:1px solid var(--line);border-radius:13px;padding:18px;text-align:center;font-weight:700;font-size:1.05rem}
+code{background:#edf4f5;padding:.12em .35em;border-radius:5px}
+footer{border-top:1px solid var(--line);padding-top:24px;color:var(--muted)}
+.mobile{display:none;background:var(--dark);color:white;padding:12px 15px;position:sticky;top:0;z-index:10}
+.webflasher-link{display:inline-block;margin-top:8px;background:var(--accent);color:#fff;text-decoration:none;padding:10px 14px;border-radius:9px;font-weight:700}
+.webflasher-link:hover{filter:brightness(.95)}
+@media(max-width:900px){.layout{display:block}aside{display:none}.mobile{display:block}.mobile a{color:white}}
+</style>
+</head>
+<body>
+<div class="mobile"><a href="#contenido">☰ Índice</a></div>
+<div class="layout">
+<aside>
+<div class="brand">INDY OPEN WRISTBAND<small>Manual de Usuario</small></div>
+<nav id="contenido">
+<a href="#general">1. Descripción general</a>
+<a href="#inicio">2. Inicio</a>
+<a href="#pantallas">3. Pantallas</a>
+<a href="#principal">4. Pantalla principal</a>
+<a href="#gps">5. Pantalla GPS</a>
+<a href="#aprs">6. Pantalla APRS</a>
+<a href="#consumo">7. Modos de consumo</a>
+<a href="#apagado">8. Apagar y despertar</a>
+<a href="#tx">9. Transmisión APRS</a>
+<a href="#usb">10. Diagnóstico USB</a>
+<a href="#limitaciones">11. Limitaciones actuales</a>
+<a href="#webflasher">12. Web Flasher</a>
+</nav>
+</aside>
+<main>
+<header class="hero"><div>
+<div>Indy Open Project by XE3JAC · Firmware v0.1.3 o posterior</div>
+<h1>INDY OPEN<br>WRISTBAND</h1>
+<p>Manual de uso de Indy Open T-Impulse Wristband: operación de pantallas, GPS, APRS, modos de consumo, suspensión y diagnóstico.</p>
+<div class="tags"><span class="tag">T-Impulse</span><span class="tag">STM32L073RZ</span><span class="tag">GNSS</span><span class="tag">LoRa</span><span class="tag">APRS</span></div>
+</div></header>
+
+<div class="content">
+
+<section id="general">
+<h2>1. Descripción general</h2>
+<p>Esta guía describe el uso del firmware <code>v0.1.3</code> o posterior. La pulsera debe tener un firmware que incluya el bloque <code>FirmwareConfigBlock</code> y haber sido configurada desde el Web Flasher con el perfil de radio correcto.</p>
+<div class="cards">
+<div class="card"><strong>Pantalla</strong><p>Hora, indicativo, GPS, satélites y estado TX.</p></div>
+<div class="card"><strong>GNSS</strong><p>Posición, fix, coordenadas y sincronización de hora.</p></div>
+<div class="card"><strong>APRS</strong><p>Estado TX, frecuencia, potencia y próximo intento de baliza.</p></div>
+<div class="card"><strong>Consumo</strong><p>Modos Activo y Ahorro con suspensión automática de pantalla y GNSS.</p></div>
+</div>
+</section>
+
+<section id="inicio">
+<h2>2. Inicio</h2>
+<ol>
+<li>Conecte la pulsera por USB o despierte el equipo tocando el sensor.</li>
+<li>Espere la pantalla de inicio y, para obtener ubicación, salga al exterior.</li>
+<li>La pantalla principal muestra la hora local; antes de contar con hora GNSS muestra el tiempo desde el encendido.</li>
+</ol>
+<div class="note"><strong>Hora:</strong> utiliza la zona horaria y el formato de 12/24 horas configurados en el Web Flasher. El cambio de zona horaria solo modifica el reloj visible.</div>
+</section>
+
+<section id="pantallas">
+<h2>3. Navegación entre pantallas</h2>
+<p>Un toque breve pasa a la siguiente pantalla. El recorrido es circular:</p>
+<div class="arch">Principal → GPS → APRS → Principal</div>
+<p>El indicador inferior marca la página actual con un punto lleno.</p>
+</section>
+
+<section id="principal">
+<h2>4. Pantalla principal</h2>
+<p>Muestra la hora, el indicativo APRS, el estado GPS, satélites y TX.</p>
+<table>
+<thead><tr><th>Indicador</th><th>Significado</th></tr></thead>
+<tbody>
+<tr><td><code>GOK</code></td><td>GPS con posición válida.</td></tr>
+<tr><td><code>G..</code></td><td>GPS buscando posición.</td></tr>
+<tr><td><code>S08</code></td><td>Ocho satélites detectados.</td></tr>
+<tr><td><code>T+</code></td><td>Transmisión habilitada con indicativo válido.</td></tr>
+<tr><td><code>T-</code></td><td>Transmisión bloqueada.</td></tr>
+<tr><td><code>B--</code></td><td>La lectura de batería todavía no está disponible en este firmware.</td></tr>
+</tbody>
+</table>
+</section>
+
+<section id="gps">
+<h2>5. Pantalla GPS</h2>
+<p>Muestra satélites, estado de fix y coordenadas. Si aparece <code>FIX NO</code>, las coordenadas no se muestran porque no existe una posición actual válida.</p>
+</section>
+
+<section id="aprs">
+<h2>6. Pantalla APRS</h2>
+<p>Muestra indicativo, frecuencia, potencia, estado TX y el tiempo estimado hasta la próxima baliza.</p>
+<table>
+<thead><tr><th>Indicador</th><th>Significado</th></tr></thead>
+<tbody>
+<tr><td><code>TX ON</code></td><td>El firmware puede transmitir si hay posición válida.</td></tr>
+<tr><td><code>TX OFF</code></td><td>Las balizas están bloqueadas.</td></tr>
+<tr><td><code>ACT</code></td><td>Modo Activo.</td></tr>
+<tr><td><code>SAVE</code></td><td>Modo Ahorro.</td></tr>
+<tr><td><code>LAST</code></td><td>Antigüedad de la última transmisión realizada desde el arranque.</td></tr>
+<tr><td><code>NEXT</code></td><td>Tiempo estimado hasta el siguiente intento de baliza.</td></tr>
+</tbody>
+</table>
+</section>
+
+<section id="consumo">
+<h2>7. Modos de consumo</h2>
+<p>Mantenga el sensor entre <strong>0.9 y 1.8 segundos</strong> y luego suéltelo para alternar el modo. La pantalla confirma <code>MODO ACTIVO</code> o <code>MODO AHORRO</code>.</p>
+<table>
+<thead><tr><th>Modo</th><th>Pantalla</th><th>GNSS</th></tr></thead>
+<tbody>
+<tr><td>Activo</td><td>Se apaga a los 10 s</td><td>Permanece encendido</td></tr>
+<tr><td>Ahorro</td><td>Se apaga a los 5 s</td><td>Tras 45 s con pantalla apagada y fix válido, se apaga; vuelve cada 2 min o con un toque</td></tr>
+</tbody>
+</table>
+<div class="note">El modo se mantiene mientras la pulsera permanezca encendida. Tras reinicio o salida de suspensión profunda, vuelve al modo Activo.</div>
+</section>
+
+<section id="apagado">
+<h2>8. Apagar y despertar</h2>
+<p>Mantenga el sensor durante <strong>1.8 segundos</strong> para entrar en suspensión profunda. La radio, GNSS y pantalla se apagan. Toque el sensor para despertar; la pulsera reinicia el firmware.</p>
+<div class="note">El apagado automático de pantalla no apaga el firmware: GPS, LoRa, APRS y los temporizadores continúan funcionando. El primer toque solo despierta la pantalla y conserva la página anterior; el segundo toque pasa a la siguiente pantalla.</div>
+</section>
+
+<section id="tx">
+<h2>9. Transmisión APRS</h2>
+<p>Para habilitar TX desde el Web Flasher deben configurarse:</p>
+<ul>
+<li>Un indicativo APRS válido, distinto de <code>NOCALL</code>.</li>
+<li><code>txEnabled = 1</code>.</li>
+<li>Perfil correcto para el módulo y la banda.</li>
+<li>CRC-32 actualizado en el <code>FirmwareConfigBlock</code>.</li>
+</ul>
+<p>Con TX activado, las balizas se emiten automáticamente con posición GNSS válida según SmartBeaconing.</p>
+<div class="note warn"><strong>Importante:</strong> no hay baliza manual por toque, para evitar transmisiones accidentales mientras se navega por la pantalla.</div>
+</section>
+
+<section id="usb">
+<h2>10. Diagnóstico por USB</h2>
+<p>Abra el puerto serie a <strong>115200 baudios</strong>.</p>
+<table>
+<thead><tr><th>Mensaje</th><th>Significado</th></tr></thead>
+<tbody>
+<tr><td><code>OLED 0x3C: detectado</code></td><td>Pantalla I²C encontrada.</td></tr>
+<tr><td><code>DISPLAY WAKE</code> / <code>DISPLAY SLEEP</code></td><td>Cambio de estado del OLED.</td></tr>
+<tr><td><code>SCREEN HOME</code>, <code>SCREEN GPS</code>, <code>SCREEN APRS</code></td><td>Cambio de pantalla.</td></tr>
+<tr><td><code>POWER MODE ACTIVO</code> / <code>POWER MODE AHORRO</code></td><td>Cambio de modo.</td></tr>
+<tr><td><code>GPS SLEEP (ahorro)</code> / <code>GPS WAKE (...)</code></td><td>Ciclo de GNSS en Ahorro.</td></tr>
+<tr><td><code>TX - OFF: transmision bloqueada</code></td><td>TX no está autorizado por la configuración.</td></tr>
+</tbody>
+</table>
+</section>
+
+<section id="limitaciones">
+<h2>11. Limitaciones actuales</h2>
+<ul>
+<li>La T-Impulse utiliza un solo sensor táctil digital para los controles.</li>
+<li>No detecta swipe izquierdo/derecho real.</li>
+<li>No detecta gesto de levantar muñeca porque el proyecto actual no declara un IMU/acelerómetro operativo.</li>
+<li>Todavía no hay lectura de batería integrada.</li>
+</ul>
+</section>
+
+<section id="webflasher">
+<h2>12. Web Flasher</h2>
+<p>La configuración del dispositivo se realiza mediante el Web Flasher de Indy Open T-Impulse Wristband.</p>
+<a class="webflasher-link" href="https://xe3jac.github.io/Indy-Open-T-Impulse-Wristband/webflasher" target="_blank" rel="noopener">Abrir Web Flasher</a>
+<div class="note">Desde el Web Flasher se configura el perfil de radio y los parámetros del <code>FirmwareConfigBlock</code> antes de instalar el firmware.</div>
+</section>
+
+<footer>
+<div class="donaciones">
+<h3>❤️ Apoya Indy Open APRS</h3>
+<p>Si este proyecto te resulta útil y deseas colaborar con su desarrollo y mantenimiento, puedes apoyarlo mediante PayPal.</p>
+<form action="https://www.paypal.com/donate" method="post" target="_top">
+<input type="hidden" name="hosted_button_id" value="2RX7AT3HP4RNG">
+<input type="image" src="https://www.paypalobjects.com/es_XC/MX/i/btn/btn_donateCC_LG.gif" border="0" name="submit" title="Apoya Indy Open APRS mediante PayPal" alt="Donar con PayPal">
+<img alt="" border="0" src="https://www.paypal.com/es_MX/i/scr/pixel.gif" width="1" height="1">
+</form>
+</div>
+<p>Indy Open T-Impulse Wristband · Indy Open Project by XE3JAC</p>
+</footer>
+
+</div>
+</main>
+</div>
+</body>
+</html>
