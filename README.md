@@ -1,12 +1,7 @@
 # Indy Open T-Impulse Wristband
 
-<p align="center">
-  <img src="docs/images/t-impulse-wristband.png" alt="Indy Open T-Impulse Wristband" width="100%">
-</p>
+![Indy Open T-Impulse Wristband](./docs/images/t-impulse-wristband.png)
 
-<p align="center">
-  <strong>Tu beacon APRS en la muñeca.</strong>
-</p>
 ```
 **Indy Open T-Impulse Wristband** convierte la **LILYGO T-Impulse** en
 un beacon APRS portátil, ligero y configurable.
