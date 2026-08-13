@@ -1,55 +1,68 @@
-# Indy Open T-Impulse Wristband
+# ⌚📡 Indy Open T-Impulse Wristband
+
+## Tu beacon APRS en la muñeca.
+
+### Imagen Generada con IA.
 
 ![Indy Open T-Impulse Wristband](./docs/images/t-impulse-wristband.png)
 
-```
-**Indy Open T-Impulse Wristband** convierte la **LILYGO T-Impulse** en
-un beacon APRS portátil, ligero y configurable.
+**Indy Open T-Impulse Wristband** es un proyecto abierto de la familia
+**Indy Open**, orientado a convertir la **LILYGO T-Impulse** en un
+beacon APRS portátil, ligero y configurable.
 
-Obtén tu posición mediante GNSS, transmite balizas APRS y consulta la
-información más importante directamente desde tu muñeca.
+El proyecto aprovecha el **STM32L073RZ**, el posicionamiento GNSS y la
+radio **LoRa** para transmitir balizas APRS y mostrar en la muñeca
+información útil como hora, satélites, batería y estado de transmisión.
 
-> ⚠️ **Proyecto en desarrollo**\
-> Las características, funciones y especificaciones pueden cambiar
-> durante el desarrollo y las pruebas.
+> \[!IMPORTANT\] \## 🚧 PROYECTO EN DESARROLLO
+>
+> **Indy Open T-Impulse Wristband se encuentra actualmente en desarrollo
+> activo.**
+>
+> Las características, pantallas, funciones e integraciones descritas en
+> este repositorio representan la visión y los objetivos actuales del
+> proyecto.
+>
+> ⚠️ **Las funcionalidades pueden cambiar, añadirse, modificarse o
+> eliminarse durante el proceso de desarrollo y pruebas.**
+>
+> Algunas funciones mostradas en la documentación y material promocional
+> son conceptos previstos y **pueden no estar implementadas todavía**.
+>
+> Si quieres seguir la evolución del proyecto, utiliza ⭐ **Star** y 👀
+> **Watch** en GitHub para recibir las próximas actualizaciones.
+
+# WEBFLASHER - Indy Open T-Impulse Wristband
+
+https://xe3jac.github.io/Indy-Open-T-Impulse-Wristband/webflasher
+
+Desde el Web Flasher puedes seleccionar el perfil de radio, configurar
+tus datos APRS y preparar el firmware para instalarlo en la T-Impulse.
 
 ------------------------------------------------------------------------
 
-## 📡 ¿Qué hace?
+## 🚀 ¿Qué queremos hacer?
 
-Indy Open T-Impulse Wristband está diseñado para transmitir
-periódicamente la posición del usuario mediante **APRS sobre LoRa**.
+Indy Open T-Impulse Wristband busca ofrecer un tracker APRS pequeño y
+cómodo para llevar directamente en la muñeca.
 
-El dispositivo puede mostrar información relevante como:
+Entre las funciones del proyecto se encuentran:
 
--   📍 Estado de posición GNSS
+-   📍 Posicionamiento mediante GNSS
+-   📡 Envío periódico de balizas APRS
 -   🛰️ Número de satélites
--   🔋 Nivel de batería
--   📡 Estado de transmisión
+-   🔋 Estado de batería
 -   🕐 Hora obtenida mediante GNSS
--   ➤ Última transmisión realizada
+-   ➤ Hora de la última transmisión
+-   🚶 Intervalos de baliza según actividad
+-   ⚙️ Configuración mediante Web Flasher
+-   📻 Comunicación mediante LoRa
 
 ------------------------------------------------------------------------
 
-## ✨ Características
+## 📡 APRS
 
--   Beacon APRS portátil
--   GNSS integrado
--   Comunicación LoRa
--   Configuración personalizada de APRS
--   Intervalos de transmisión según actividad
--   Potencia de transmisión configurable
--   Activación y desactivación de TX
--   Información de batería
--   Hora mediante GNSS
--   Web Flasher para configuración e instalación
--   Diseño portátil y de bajo consumo
-
-------------------------------------------------------------------------
-
-## 🛰️ APRS
-
-La configuración puede incluir:
+El dispositivo puede configurarse con los siguientes parámetros:
 
 -   Indicativo APRS
 -   Comentario de baliza
@@ -59,9 +72,14 @@ La configuración puede incluir:
 -   Potencia de transmisión
 -   Activación o desactivación de TX
 
+Los parámetros se personalizan desde el Web Flasher antes de instalar el
+firmware.
+
 ------------------------------------------------------------------------
 
 ## 📻 Perfiles de radio
+
+Actualmente se contemplan los siguientes perfiles:
 
   Módulo   Radio       Frecuencia
   -------- -------- -------------
@@ -69,48 +87,43 @@ La configuración puede incluir:
   S76G     SX1276     868.200 MHz
   S76G     SX1276     915.000 MHz
 
-> La disponibilidad y utilización de determinadas frecuencias y
-> potencias depende de la región y de la normativa aplicable.
+> La frecuencia y potencia utilizadas deben cumplir con la normativa
+> aplicable en cada país o región y con los privilegios de la licencia
+> del operador.
 
 ------------------------------------------------------------------------
 
-## ⌚ Pantalla
+## 🔧 Hardware objetivo
 
-Entre los datos que puede mostrar se encuentran:
+El desarrollo está pensado para:
+
+### LILYGO T-Impulse
+
+Características principales utilizadas por el proyecto:
+
+-   STM32L073RZ
+-   GNSS
+-   LoRa
+-   Pantalla integrada
+-   Funcionamiento portátil con batería
+-   Conexión USB para configuración e instalación
+
+------------------------------------------------------------------------
+
+## ⌚ Información en pantalla
+
+La interfaz está pensada para mostrar información relevante sin saturar
+la pantalla.
+
+Entre los datos contemplados se encuentran:
 
 -   Hora
 -   Indicativo APRS
 -   Estado GNSS
--   Satélites
--   Batería
--   Estado TX
+-   Número de satélites
+-   Nivel de batería
+-   Estado de TX
 -   Última baliza transmitida
-
-El objetivo es ofrecer una interfaz sencilla, clara y adecuada para una
-pantalla de muñeca.
-
-------------------------------------------------------------------------
-
-## 🌐 Web Flasher
-
-El proyecto incluye un **Web Flasher** que permite configurar e instalar
-el firmware desde un navegador compatible.
-
-El usuario puede seleccionar el perfil de radio, introducir su
-configuración APRS y preparar una copia personalizada del firmware antes
-de instalarla en el dispositivo.
-
-------------------------------------------------------------------------
-
-## 🔧 Hardware
-
-**Plataforma objetivo:** LILYGO T-Impulse\
-**Microcontrolador:** STM32L073RZ
-
-Perfiles contemplados:
-
--   **S78G / SX1278**
--   **S76G / SX1276**
 
 ------------------------------------------------------------------------
 
@@ -125,83 +138,32 @@ Perfiles contemplados:
 
 ------------------------------------------------------------------------
 
-## 🚧 Estado del proyecto
+## ⭐ Sigue el proyecto
 
-**Indy Open T-Impulse Wristband se encuentra actualmente en
-desarrollo.**
+Si te interesa Indy Open T-Impulse Wristband:
 
-El hardware, firmware, interfaz y comportamiento pueden cambiar conforme
-avanzan las pruebas.
+-   ⭐ Dale una **Star** al repositorio
+-   👀 Usa **Watch** para recibir actualizaciones
+-   🍴 Haz **Fork** si quieres experimentar
+-   💡 Comparte ideas y sugerencias
+-   🐛 Reporta errores
+-   🤝 Contribuye al desarrollo
 
-------------------------------------------------------------------------
-
-## 🛠️ Instalación
-
-El método recomendado de instalación es mediante el **Web Flasher**
-incluido en este repositorio.
-
-Los archivos del instalador web se encuentran en:
-
-`/webflasher/`
-
-Las versiones publicadas del firmware pueden encontrarse en la sección
-**Releases** del repositorio.
+Cada colaboración ayuda a que el proyecto siga creciendo.
 
 ------------------------------------------------------------------------
 
-## 🤝 Contribuciones
+## ☕ Apoya el proyecto
 
-Este es un proyecto abierto y comunitario. Son bienvenidos los reportes
-de errores, pruebas con hardware, mejoras del firmware y Web Flasher,
-documentación y pull requests.
+Indy Open es un proyecto comunitario desarrollado por interés en la
+radioafición, la experimentación y el hardware/software abierto.
 
-------------------------------------------------------------------------
+Si quieres ayudar a continuar desarrollando, probando hardware y creando
+nuevas funciones, puedes apoyar voluntariamente el proyecto.
 
-## 🌎 Familia Indy Open
+❤️ **Las donaciones son completamente opcionales.**
 
-T-Impulse Wristband forma parte del ecosistema **Indy Open**:
+[![Donar con
+PayPal](https://www.paypalobjects.com/es_XC/MX/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate?hosted_button_id=2RX7AT3HP4RNG)
 
--   📡 Indy Open APRS
--   🟧 Indy Open TNC
--   🟢 Indy Open LoRa
--   🟣 Indy Open HamWatch
-
-------------------------------------------------------------------------
-
-## ⚠️ Uso de radiofrecuencia
-
-La transmisión de radiofrecuencia está sujeta a las regulaciones
-aplicables en cada país o región.
-
-El usuario es responsable de utilizar frecuencias, niveles de potencia,
-indicativos y demás parámetros permitidos por la legislación aplicable y
-por su licencia de radioaficionado.
-
-------------------------------------------------------------------------
-
-## 📜 Open Source
-
-**Abierto · Colaborativo · Comunitario**
-
-Indy Open busca desarrollar hardware y software abierto para la
-comunidad radioaficionada.
-
-Consulta los archivos de licencia incluidos en este repositorio para
-conocer las condiciones aplicables.
-
-------------------------------------------------------------------------
-
-```{=html}
-<p align="center">
-```
-`<strong>`{=html}INDY OPEN`</strong>`{=html}
-```{=html}
-</p>
-```
-```{=html}
-<p align="center">
-```
-Tu radio. Tu red. Tu pasión.
-```{=html}
-</p>
-```
+**¡Gracias por apoyar Indy Open APRS! 73 de XE3JAC**
