@@ -52,7 +52,7 @@ footer{color:var(--muted);text-align:center;font-size:.9rem;margin-top:28px}
 <section class="hero">
   <div class="eyebrow">Indy Open Project by XE3JAC</div>
   <h1>INDY OPEN WRISTBAND</h1>
-  <p>Web Flasher para LILYGO T-Impulse con STM32L073RZ mediante STM32 DFU/DfuSe por WebUSB.</p>
+  <p>Conecta tu LILYGO T-Impulse y sigue el avance de la instalación.</p>
 </section>
 
 <div class="grid">
@@ -64,35 +64,32 @@ footer{color:var(--muted);text-align:center;font-size:.9rem;margin-top:28px}
     <label class="option selected" id="opt433">
       <input type="radio" name="profile" value="s78g433" checked>
       <strong>S78G · SX1278 · 433.775 MHz</strong>
-      <span class="small">Dry-run · TX desactivado · <span id="ver433">consultando…</span></span>
+      <span class="small"><span id="ver433">consultando…</span></span>
     </label>
 
     <label class="option" id="opt868">
       <input type="radio" name="profile" value="s76g868">
       <strong>S76G · SX1276 · 868.200 MHz</strong>
-      <span class="small">Dry-run · TX desactivado · <span id="ver868">consultando…</span></span>
+      <span class="small"><span id="ver868">consultando…</span></span>
     </label>
 
     <label class="option" id="opt915">
       <input type="radio" name="profile" value="s76g915">
       <strong>S76G · SX1276 · 915.000 MHz</strong>
-      <span class="small">Dry-run · TX desactivado · <span id="ver915">consultando…</span></span>
+      <span class="small"><span id="ver915">consultando…</span></span>
     </label>
   </div>
 
   <div id="supportStatus" class="status">Comprobando compatibilidad…</div>
 
   <div class="actions">
-    <button id="connectBtn">1. Conectar STM32 DFU</button>
+    <button id="connectBtn">1. Conectar dispositivo</button>
     <button id="flashBtn" disabled>2. Instalar firmware</button>
   </div>
 
   <div class="status">
-    <strong>Equipo:</strong> LILYGO T-Impulse · STM32L073RZ<br>
-    <strong>USB requerido:</strong> 0483:DF11<br>
-    <strong>Firmware:</strong> <span id="selectedFirmware">S78G · 433.775 MHz</span><br>
+    <strong>Perfil seleccionado:</strong> <span id="selectedFirmware">S78G · 433.775 MHz</span><br>
     <strong>Versión:</strong> <span id="selectedVersion">consultando…</span><br>
-    <strong>Transferencia DFU:</strong> <span id="transferSize">sin detectar</span><br>
     <strong>Estado:</strong> <span id="deviceState">sin conectar</span>
   </div>
 
@@ -105,34 +102,25 @@ footer{color:var(--muted);text-align:center;font-size:.9rem;margin-top:28px}
 Listo.</pre>
 
   <div class="warning">
-    <strong>Importante:</strong> este instalador sólo acepta un dispositivo STM32 DFU con VID <code>0483</code> y PID <code>DF11</code>. La escritura comienza en <code>0x08000000</code>.
+    <strong>Importante:</strong> utiliza únicamente este instalador con una LILYGO T-Impulse compatible. No desconectes el dispositivo durante la instalación.
   </div>
 </section>
 
 <aside class="card">
   <h2>Procedimiento</h2>
   <ol>
-    <li>Selecciona el perfil de radio correcto para tu T-Impulse.</li>
-    <li>Coloca la pulsera en modo bootloader STM32 DFU.</li>
+    <li>Selecciona el perfil de radio correspondiente a tu pulsera.</li>
+    <li>Coloca la T-Impulse en modo de actualización.</li>
     <li>Conéctala mediante un cable USB de datos.</li>
-    <li>Pulsa <strong>Conectar STM32 DFU</strong> y selecciona <strong>0483:DF11</strong>.</li>
-    <li>Verifica que el Web Flasher detecte una interfaz DFU con descarga/escritura.</li>
+    <li>Pulsa <strong>Conectar dispositivo</strong> y selecciona la T-Impulse.</li>
     <li>Pulsa <strong>Instalar firmware</strong>.</li>
     <li>No desconectes la pulsera hasta que aparezca el mensaje de instalación completada.</li>
   </ol>
-
-  <div class="status">
-    <strong>DFU:</strong> compatible con descriptores STM32 DfuSe 1.1a. El tamaño de transferencia se lee del descriptor DFU; si no está disponible se usan <strong>1024 bytes</strong>.
-  </div>
-
-  <div class="warning">
-    <strong>Atención:</strong> los tres perfiles actuales están marcados como <strong>Dry-run, TX desactivado</strong>.
-  </div>
 </aside>
 
 </div>
 
-<footer>Indy Open Wristband · Indy Open Project by XE3JAC · Web Flasher v0.1.1</footer>
+<footer>Indy Open Wristband · Indy Open Project by XE3JAC · Web Flasher v0.1.2</footer>
 
 </main>
 
@@ -243,7 +231,7 @@ async function loadCatalog(){
   }
 
   renderSelection();
-  setResult("Firmwares disponibles. Coloca la T-Impulse en modo STM32 DFU.", "ok");
+  setResult("Firmwares disponibles. Conecta tu T-Impulse para continuar.", "ok");
 }
 
 function findDfuInterface(){
@@ -483,7 +471,6 @@ async function connectBoard(){
 
   await ensureDfuIdle();
 
-  $("transferSize").textContent = `${transferSize} bytes`;
   $("deviceState").textContent =
     `STM32 DFU conectado (${fmtHex(device.vendorId)}:${fmtHex(device.productId)})`;
 
