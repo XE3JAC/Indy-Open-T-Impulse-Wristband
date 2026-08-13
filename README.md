@@ -16,6 +16,8 @@ información útil como hora, satélites, batería y estado de transmisión.
 >
 > Si quieres seguir la evolución del proyecto, utiliza ⭐ **Star** y 👀
 > **Watch** en GitHub para recibir las próximas actualizaciones.
+>
+> La interfaz y controles descritos corresponden al firmware `v0.1.4` o posterior.
 
 # WEBFLASHER - Indy Open T-Impulse Wristband
 # https://xe3jac.github.io/Indy-Open-T-Impulse-Wristband/webflasher
@@ -96,18 +98,79 @@ Características principales utilizadas por el proyecto:
 
 ## ⌚ Información en pantalla
 
-La interfaz está pensada para mostrar información relevante sin saturar
-la pantalla.
+La interfaz está diseñada para mostrar únicamente la información más útil en el OLED de 64×32 píxeles.
 
-Entre los datos contemplados se encuentran:
+El recorrido de pantallas es circular:
 
--   Hora
--   Indicativo APRS
--   Estado GNSS
--   Número de satélites
--   Nivel de batería
--   Estado de TX
--   Última baliza transmitida
+```text
+Reloj → GPS → APRS → Batería → Modo → Reloj
+```
+
+### 1. Reloj
+
+Muestra la hora local y el indicativo APRS.
+
+```text
+09:55 PM
+XE3JAC-9
+```
+
+### 2. GPS
+
+Muestra el estado del posicionamiento GNSS y el número de satélites.
+
+```text
+GPS = FIJADO
+8 SATELITES
+```
+
+### 3. APRS
+
+Muestra si APRS está habilitado, el total de transmisiones confirmadas desde el encendido y el tiempo estimado para la próxima baliza.
+
+```text
+APRS = ON
+TX = 15
+PROX = 00:15
+```
+
+### 4. Batería
+
+Muestra voltaje y porcentaje aproximado calculado mediante ADC.
+
+```text
+BATERIA
+3.19V 82%
+```
+
+> La conversión de voltaje y porcentaje continúa en proceso de calibración con mediciones reales de batería cargada y descargada.
+
+### 5. Modo
+
+Muestra el modo de consumo actual:
+
+```text
+MODO
+AHORRO
+DOBLE TOQUE
+```
+
+Puede mostrar `ACTIVO` o `AHORRO`.
+
+### Controles
+
+- **Toque breve:** cambia a la siguiente pantalla.
+- **Doble toque:** alterna entre modo **ACTIVO** y **AHORRO**.
+- **Toque largo de 2 segundos:** apaga la pulsera entrando en suspensión profunda.
+- Con la pantalla apagada, el primer toque la despierta conservando la pantalla anterior.
+
+### Modos de consumo
+
+| Modo | Pantalla | GNSS |
+|---|---|---|
+| Activo | Se apaga a los 10 s | Permanece encendido |
+| Ahorro | Se apaga a los 5 s | Se suspende para ahorrar energía y despierta periódicamente |
+
 
 ------------------------------------------------------------------------
 
@@ -140,7 +203,7 @@ Cada colaboración ayuda a que el proyecto siga creciendo.
 ## ☕ Apoya el proyecto
 
 Indy Open es un proyecto comunitario desarrollado por interés en la
-radioafición, la experimentación y el hardware/software abierto.
+radioafición, la experimentación y el desarrollo de nuevas herramientas.
 
 Si quieres ayudar a continuar desarrollando, probando hardware y creando
 nuevas funciones, puedes apoyar voluntariamente el proyecto.
