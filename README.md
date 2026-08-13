@@ -1,17 +1,11 @@
 # Indy Open T-Impulse Wristband
 
-```{=html}
 <p align="center">
-```
-`<img src="docs/images/t-impulse-wristband.png" alt="Indy Open T-Impulse Wristband" width="100%">`{=html}
-```{=html}
+  <img src="docs/images/t-impulse-wristband.png" alt="Indy Open T-Impulse Wristband" width="100%">
 </p>
-```
-```{=html}
+
 <p align="center">
-```
-`<strong>`{=html}Tu beacon APRS en la muñeca.`</strong>`{=html}
-```{=html}
+  <strong>Tu beacon APRS en la muñeca.</strong>
 </p>
 ```
 **Indy Open T-Impulse Wristband** convierte la **LILYGO T-Impulse** en
