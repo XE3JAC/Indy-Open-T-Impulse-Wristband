@@ -128,6 +128,45 @@ footer{color:var(--muted);text-align:center;font-size:.9rem;margin-top:28px}
         <input id="drivingInterval" type="number" min="10" max="86400" step="1" value="30">
         <span class="small">segundos</span>
       </div>
+      <div class="field">
+        <label for="timezoneOffset">Zona horaria</label>
+        <select id="timezoneOffset">
+          <option value="-12">UTC-12</option>
+          <option value="-11">UTC-11</option>
+          <option value="-10">UTC-10</option>
+          <option value="-9">UTC-9</option>
+          <option value="-8">UTC-8</option>
+          <option value="-7">UTC-7</option>
+          <option value="-6" selected>UTC-6</option>
+          <option value="-5">UTC-5</option>
+          <option value="-4">UTC-4</option>
+          <option value="-3">UTC-3</option>
+          <option value="-2">UTC-2</option>
+          <option value="-1">UTC-1</option>
+          <option value="0">UTC</option>
+          <option value="1">UTC+1</option>
+          <option value="2">UTC+2</option>
+          <option value="3">UTC+3</option>
+          <option value="4">UTC+4</option>
+          <option value="5">UTC+5</option>
+          <option value="6">UTC+6</option>
+          <option value="7">UTC+7</option>
+          <option value="8">UTC+8</option>
+          <option value="9">UTC+9</option>
+          <option value="10">UTC+10</option>
+          <option value="11">UTC+11</option>
+          <option value="12">UTC+12</option>
+          <option value="13">UTC+13</option>
+          <option value="14">UTC+14</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="hourFormat">Formato de hora</label>
+        <select id="hourFormat">
+          <option value="12" selected>12 horas (AM/PM)</option>
+          <option value="24">24 horas</option>
+        </select>
+      </div>
     </div>
 
     <label class="check-row">
@@ -170,7 +209,7 @@ Listo.</pre>
   <ol>
     <li>Usa Chrome o Edge y un cable USB de datos.</li>
     <li>Selecciona el perfil correcto: 433, 868 o 915 MHz.</li>
-    <li>Completa tu configuración APRS.</li>
+    <li>Completa tu configuración APRS y selecciona la zona horaria y formato de reloj.</li>
     <li>Si activas <strong>TX</strong>, deberás confirmarlo expresamente antes de instalar.</li>
   </ol>
 
@@ -191,18 +230,18 @@ Listo.</pre>
   </ol>
 
   <div class="status">
-    <strong>Configuración guardada:</strong> el navegador recuerda tus datos para futuras instalaciones. La confirmación de TX no se guarda y debe realizarse nuevamente.
+    <strong>Configuración guardada:</strong> el navegador recuerda tus datos, zona horaria y formato de reloj para futuras instalaciones. La confirmación de TX no se guarda y debe realizarse nuevamente.
   </div>
 </aside>
 
 </div>
 
-<footer>Indy Open Wristband · Indy Open Project by XE3JAC · Web Flasher v0.1.12</footer>
+<footer>Indy Open Wristband · Indy Open Project by XE3JAC · Web Flasher v0.1.13</footer>
 
 </main>
 
-<script src="vendor/dfu.js?v=0.1.12"></script>
-<script src="vendor/dfuse.js?v=0.1.12"></script>
+<script src="vendor/dfu.js?v=0.1.13"></script>
+<script src="vendor/dfuse.js?v=0.1.13"></script>
 <script>
 const USB_VID = 0x0483;
 const USB_PID = 0xDF11;
@@ -224,7 +263,9 @@ const CONFIG_OFFSETS = Object.freeze({
   driving: 78,
   txPower: 82,
   txEnabled: 83,
-  reserved: 84,
+  timezoneOffset: 84,
+  hourFormat: 85,
+  reserved: 86,
   crc32: 124
 });
 
@@ -604,6 +645,16 @@ function getUserConfig(){
     }
   }
 
+  const timezoneOffset = Number($("timezoneOffset").value);
+  if(!Number.isInteger(timezoneOffset) || timezoneOffset < -12 || timezoneOffset > 14){
+    throw new Error("Zona horaria: selecciona un valor entre UTC-12 y UTC+14.");
+  }
+
+  const hourFormat = Number($("hourFormat").value);
+  if(hourFormat !== 12 && hourFormat !== 24){
+    throw new Error("Formato de hora: selecciona 12 o 24 horas.");
+  }
+
   return {
     callsign,
     comment,
@@ -611,7 +662,9 @@ function getUserConfig(){
     walking: readInterval("walkingInterval", "Intervalo caminando"),
     driving: readInterval("drivingInterval", "Intervalo conduciendo"),
     txPower,
-    txEnabled
+    txEnabled,
+    timezoneOffset,
+    hourFormat
   };
 }
 
@@ -637,6 +690,8 @@ function personalizeFirmware(originalBytes, config){
   writeUint32LE(bytes, blockOffset + CONFIG_OFFSETS.driving, config.driving);
   bytes[blockOffset + CONFIG_OFFSETS.txPower] = config.txPower & 0xFF;
   bytes[blockOffset + CONFIG_OFFSETS.txEnabled] = config.txEnabled;
+  bytes[blockOffset + CONFIG_OFFSETS.timezoneOffset] = config.timezoneOffset & 0xFF;
+  bytes[blockOffset + CONFIG_OFFSETS.hourFormat] = config.hourFormat;
 
   // El área reservada debe quedar en cero para schema v1.
   bytes.fill(0, blockOffset + CONFIG_OFFSETS.reserved, blockOffset + CONFIG_OFFSETS.crc32);
@@ -900,6 +955,17 @@ function loadSavedUserConfig(){
     }
 
     $("txEnabled").checked = saved.txEnabled === true || saved.txEnabled === 1;
+
+    const tz = Number(saved.timezoneOffset);
+    if(Number.isInteger(tz) && tz >= -12 && tz <= 14){
+      $("timezoneOffset").value = String(tz);
+    }
+
+    const hf = Number(saved.hourFormat);
+    if(hf === 12 || hf === 24){
+      $("hourFormat").value = String(hf);
+    }
+
     $("txConfirmBox").classList.toggle("hidden", !$("txEnabled").checked);
 
     // La confirmación de TX nunca se recuerda; debe aceptarse nuevamente
@@ -921,7 +987,9 @@ function saveUserConfig(){
       walking: Number($("walkingInterval").value),
       driving: Number($("drivingInterval").value),
       txPower: Number($("txPower").value),
-      txEnabled: $("txEnabled").checked
+      txEnabled: $("txEnabled").checked,
+      timezoneOffset: Number($("timezoneOffset").value),
+      hourFormat: Number($("hourFormat").value)
     };
     localStorage.setItem(USER_CONFIG_STORAGE_KEY, JSON.stringify(data));
   }catch{
@@ -936,9 +1004,12 @@ function saveUserConfig(){
   "walkingInterval",
   "drivingInterval",
   "txPower",
+  "timezoneOffset",
+  "hourFormat",
   "txEnabled"
 ].forEach(id => {
-  $(id).addEventListener(id === "txEnabled" ? "change" : "input", saveUserConfig);
+  const eventName = ["txEnabled","timezoneOffset","hourFormat"].includes(id) ? "change" : "input";
+  $(id).addEventListener(eventName, saveUserConfig);
 });
 
 $("txEnabled").addEventListener("change", () => {
