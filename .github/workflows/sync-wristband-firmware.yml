@@ -1,1 +1,173 @@
+name: Sync Wristband Firmware
 
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-wristband-firmware
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    # For automatic runs, only wristband-vX.Y.Z releases are accepted.
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'wristband-v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            TAG="${{ github.event.release.tag_name }}"
+          else
+            TAG="$(gh release list --limit 100 --json tagName,isDraft,isPrerelease,publishedAt \
+              --jq '[.[] | select(.isDraft == false and (.tagName | startswith("wristband-v")))] | sort_by(.publishedAt) | reverse | .[0].tagName')"
+          fi
+
+          if [[ -z "${TAG:-}" || "$TAG" == "null" ]]; then
+            echo "No wristband-v* release found."
+            exit 1
+          fi
+
+          if [[ ! "$TAG" =~ ^wristband-v([0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?)$ ]]; then
+            echo "Unsupported tag: $TAG"
+            exit 1
+          fi
+
+          VERSION="${TAG#wristband-}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Using release $TAG ($VERSION)"
+
+      - name: Download required release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .release-assets firmware
+
+          ASSET_433="indy-open-wristband-s78g-433-${VERSION}.bin"
+          ASSET_868="indy-open-wristband-s76g-868-${VERSION}.bin"
+          ASSET_915="indy-open-wristband-s76g-915-${VERSION}.bin"
+
+          for ASSET in "$ASSET_433" "$ASSET_868" "$ASSET_915"; do
+            echo "Downloading $ASSET"
+            gh release download "$TAG" \
+              --pattern "$ASSET" \
+              --dir .release-assets \
+              --clobber
+            test -s ".release-assets/$ASSET"
+          done
+
+          cp ".release-assets/$ASSET_433" firmware/indy-open-wristband-s78g-433-latest.bin
+          cp ".release-assets/$ASSET_868" firmware/indy-open-wristband-s76g-868-latest.bin
+          cp ".release-assets/$ASSET_915" firmware/indy-open-wristband-s76g-915-latest.bin
+
+      - name: Generate firmware catalog
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          tag = os.environ["TAG"]
+          version = os.environ["VERSION"]
+
+          specs = {
+              "s78g433": {
+                  "source": f"indy-open-wristband-s78g-433-{version}.bin",
+                  "local": "firmware/indy-open-wristband-s78g-433-latest.bin",
+                  "module": "S78G",
+                  "radio": "SX1278",
+                  "frequency": "433.775 MHz",
+              },
+              "s76g868": {
+                  "source": f"indy-open-wristband-s76g-868-{version}.bin",
+                  "local": "firmware/indy-open-wristband-s76g-868-latest.bin",
+                  "module": "S76G",
+                  "radio": "SX1276",
+                  "frequency": "868.200 MHz",
+              },
+              "s76g915": {
+                  "source": f"indy-open-wristband-s76g-915-{version}.bin",
+                  "local": "firmware/indy-open-wristband-s76g-915-latest.bin",
+                  "module": "S76G",
+                  "radio": "SX1276",
+                  "frequency": "915.000 MHz",
+              },
+          }
+
+          profiles = {}
+          for key, spec in specs.items():
+              path = Path(spec["local"])
+              data = path.read_bytes()
+              profiles[key] = {
+                  "version": version,
+                  "url": spec["local"],
+                  "source_asset": spec["source"],
+                  "size": len(data),
+                  "sha256": hashlib.sha256(data).hexdigest(),
+                  "module": spec["module"],
+                  "radio": spec["radio"],
+                  "frequency": spec["frequency"],
+                  "mode": "Dry-run",
+                  "tx": False,
+              }
+
+          catalog = {
+              "release": f"indy-open-wristband-{version}",
+              "tag": tag,
+              "generated_at": datetime.now(timezone.utc).isoformat(),
+              "profiles": profiles,
+          }
+
+          Path("firmware/catalog.json").write_text(
+              json.dumps(catalog, indent=2, ensure_ascii=False) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+          cat firmware/catalog.json
+
+      - name: Commit synchronized firmware
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet -- firmware/; then
+            echo "Firmware is already synchronized."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add firmware/
+          git commit -m "Sync wristband firmware ${{ steps.release.outputs.version }}"
+          git push
