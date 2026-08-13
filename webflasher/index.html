@@ -188,12 +188,12 @@ Listo.</pre>
 
 </div>
 
-<footer>Indy Open Wristband · Indy Open Project by XE3JAC · Web Flasher v0.1.7</footer>
+<footer>Indy Open Wristband · Indy Open Project by XE3JAC · Web Flasher v0.1.9</footer>
 
 </main>
 
-<script src="vendor/dfu.js?v=0.1.7"></script>
-<script src="vendor/dfuse.js?v=0.1.7"></script>
+<script src="vendor/dfu.js?v=0.1.9"></script>
+<script src="vendor/dfuse.js?v=0.1.9"></script>
 <script>
 const USB_VID = 0x0483;
 const USB_PID = 0xDF11;
@@ -396,9 +396,9 @@ async function connectBoard(){
 
   if(!hasUsableDfuseMap(settings.name)){
     settings.name = STM32L073RZ_DFUSE_MEMORY_DESCRIPTOR;
-    log("Mapa de memoria STM32L073RZ aplicado.");
+    log("Dispositivo preparado para la instalación.");
   }else{
-    log("Mapa de memoria DfuSe detectado.");
+    log("Dispositivo preparado para la instalación.");
   }
 
   let wrapper = new window.dfu.Device(usbDevice, settings);
@@ -428,7 +428,7 @@ async function connectBoard(){
     !wrapper.memoryInfo.segments.length
   ){
     try{ await wrapper.close(); }catch{}
-    throw new Error("No fue posible preparar el mapa de memoria. No se realizó ningún cambio.");
+    throw new Error("No fue posible preparar el dispositivo. No se realizó ningún cambio.");
   }
 
   const flashSegment = wrapper.memoryInfo.segments.find(segment =>
@@ -437,7 +437,7 @@ async function connectBoard(){
 
   if(!flashSegment || !flashSegment.writable || !flashSegment.erasable){
     try{ await wrapper.close(); }catch{}
-    throw new Error("La memoria interna no permite una instalación segura.");
+    throw new Error("El dispositivo no está listo para una instalación segura.");
   }
 
   wrapper.logInfo = message => {
@@ -451,14 +451,8 @@ async function connectBoard(){
       .replace(/0x08000000/gi, "memoria interna");
     log(text);
   };
-  wrapper.logWarning = message => {
-    const text = String(message || "");
-    if(text) log(text.replace(/0x08000000/gi, "memoria interna"));
-  };
-  wrapper.logError = message => {
-    const text = String(message || "");
-    if(text) log(text.replace(/0x08000000/gi, "memoria interna"));
-  };
+  wrapper.logWarning = () => {};
+  wrapper.logError = () => {};
   wrapper.logProgress = (done,total) => {
     if(total) setProgress((done/total)*100);
   };
@@ -471,7 +465,7 @@ async function connectBoard(){
   renderSelection();
   setResult("T-Impulse conectada. Completa la configuración y pulsa Instalar firmware.", "ok");
   log("T-Impulse detectada correctamente en modo DFU.");
-  log("Memoria interna detectada y validada.");
+  
 }
 
 function crc32IsoHdlc(bytes){
@@ -648,9 +642,9 @@ function personalizeFirmware(originalBytes, config){
     throw new Error("No fue posible verificar la configuración personalizada.");
   }
 
-  log("Configuración compatible encontrada.");
+  
   log("Configuración APRS aplicada.");
-  log("Integridad de configuración verificada.");
+  log("Configuración validada.");
   return bytes;
 }
 
@@ -680,6 +674,61 @@ async function downloadFirmware(){
   return data;
 }
 
+
+async function prepareDfuForProgramming(){
+  if(!device) throw new Error("La T-Impulse no está conectada.");
+
+  let status;
+  try{
+    status = await device.getStatus();
+  }catch(error){
+    throw new Error(`No fue posible consultar el estado DFU: ${error}`);
+  }
+
+  // Un comando fallido previo puede dejar el bootloader en dfuERROR.
+  if(status.state === window.dfu.dfuERROR || status.status !== window.dfu.STATUS_OK){
+    
+    await device.clearStatus();
+    await new Promise(resolve => setTimeout(resolve, 40));
+    status = await device.getStatus();
+  }
+
+  // DfuSe special commands (ERASE/SET_ADDRESS) must begin from dfuIDLE.
+  if(status.state !== window.dfu.dfuIDLE){
+    log("Preparando dispositivo…");
+    try{
+      await device.abort();
+      await new Promise(resolve => setTimeout(resolve, 40));
+    }catch(error){
+      // If ABORT stalled because the previous state was error, clear and retry.
+      try{
+        await device.clearStatus();
+        await new Promise(resolve => setTimeout(resolve, 40));
+        await device.abort();
+        await new Promise(resolve => setTimeout(resolve, 40));
+      }catch{
+        throw new Error(`No fue posible preparar el bootloader DFU: ${error}`);
+      }
+    }
+    status = await device.getStatus();
+  }
+
+  if(status.state === window.dfu.dfuERROR || status.status !== window.dfu.STATUS_OK){
+    await device.clearStatus();
+    await new Promise(resolve => setTimeout(resolve, 40));
+    status = await device.getStatus();
+  }
+
+  if(status.state !== window.dfu.dfuIDLE){
+    throw new Error(
+      `El bootloader no quedó listo para instalar (estado DFU ${status.state}). ` +
+      "Desconecta la T-Impulse, vuelve a entrar en modo DFU y conéctala nuevamente."
+    );
+  }
+
+  log("Dispositivo listo para instalar.");
+}
+
 async function flashFirmware(){
   if(!device){
     throw new Error("Primero conecta la T-Impulse en modo DFU.");
@@ -701,6 +750,8 @@ async function flashFirmware(){
   try{
     setResult("Preparando instalación…");
     log("Firmware personalizado listo para instalar.");
+
+    await prepareDfuForProgramming();
 
     await device.do_download(
       transferSize,
@@ -797,6 +848,14 @@ ${fw.version || ""}
     let message = e?.message || String(e);
     if(String(message).includes("No memory map available")){
       message = "No fue posible obtener el mapa de memoria de la T-Impulse. No se realizó ningún cambio.";
+    }else if(
+      String(message).includes("ERASE_SECTOR") ||
+      String(message).includes("controlTransferOut") ||
+      String(message).includes("special DfuSe command")
+    ){
+      message =
+        "No fue posible preparar el dispositivo para la instalación. " +
+        "Desconecta la T-Impulse, vuelve a conectarla y prueba nuevamente.";
     }
     setResult(message, "error");
     log(`ERROR: ${message}`);
