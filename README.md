@@ -19,6 +19,8 @@ información útil como hora, satélites, batería y estado de transmisión.
 >
 > La interfaz y controles descritos corresponden al firmware `v0.1.4` o posterior.
 
+------------------------------------------------------------------------
+
 # WEBFLASHER - Indy Open T-Impulse Wristband
 # https://xe3jac.github.io/Indy-Open-T-Impulse-Wristband/webflasher
 
