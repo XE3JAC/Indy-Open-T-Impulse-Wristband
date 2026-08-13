@@ -33,8 +33,7 @@ información útil como hora, satélites, batería y estado de transmisión.
 > **Watch** en GitHub para recibir las próximas actualizaciones.
 
 # WEBFLASHER - Indy Open T-Impulse Wristband
-
-https://xe3jac.github.io/Indy-Open-T-Impulse-Wristband/webflasher
+# https://xe3jac.github.io/Indy-Open-T-Impulse-Wristband/webflasher
 
 Desde el Web Flasher puedes seleccionar el perfil de radio, configurar
 tus datos APRS y preparar el firmware para instalarlo en la T-Impulse.
