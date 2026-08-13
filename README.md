@@ -2,8 +2,6 @@
 
 ## Tu beacon APRS en la muñeca.
 
-### Imagen Generada con IA.
-
 ![Indy Open T-Impulse Wristband](./docs/images/t-impulse-wristband.png)
 
 **Indy Open T-Impulse Wristband** es un proyecto abierto de la familia
@@ -14,20 +12,7 @@ El proyecto aprovecha el **STM32L073RZ**, el posicionamiento GNSS y la
 radio **LoRa** para transmitir balizas APRS y mostrar en la muñeca
 información útil como hora, satélites, batería y estado de transmisión.
 
-> \[!IMPORTANT\] \## 🚧 PROYECTO EN DESARROLLO
->
-> **Indy Open T-Impulse Wristband se encuentra actualmente en desarrollo
-> activo.**
->
-> Las características, pantallas, funciones e integraciones descritas en
-> este repositorio representan la visión y los objetivos actuales del
-> proyecto.
->
-> ⚠️ **Las funcionalidades pueden cambiar, añadirse, modificarse o
-> eliminarse durante el proceso de desarrollo y pruebas.**
->
-> Algunas funciones mostradas en la documentación y material promocional
-> son conceptos previstos y **pueden no estar implementadas todavía**.
+> \[!IMPORTANT\] \## 🚧EL PROYECTO ESTA EN CONTINUO DESARROLLO
 >
 > Si quieres seguir la evolución del proyecto, utiliza ⭐ **Star** y 👀
 > **Watch** en GitHub para recibir las próximas actualizaciones.
