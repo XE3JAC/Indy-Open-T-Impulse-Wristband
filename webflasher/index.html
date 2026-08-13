@@ -99,6 +99,7 @@ footer{color:var(--muted);text-align:center;font-size:.9rem;margin-top:28px}
 
   <div class="config-form">
     <h3>Configuración APRS</h3>
+    <div class="small">Tus datos se guardan únicamente en este navegador.</div>
     <div class="config-grid">
       <div class="field">
         <label for="callsign">Indicativo APRS</label>
@@ -160,40 +161,48 @@ footer{color:var(--muted);text-align:center;font-size:.9rem;margin-top:28px}
   <h3>Consola</h3>
   <pre id="log">Indy Open Wristband — Web Flasher
 Listo.</pre>
-
-  <div class="status">
-    <strong>Antes de conectar:</strong> la T-Impulse debe estar en <strong>modo DFU</strong>. En Windows, el dispositivo <strong>STM32 BOOTLOADER (0483:DF11)</strong> debe utilizar <strong>WinUSB</strong>. Si Chrome indica que no encuentra el dispositivo o muestra acceso denegado, revisa el controlador con Zadig.
-  </div>
-
-  <div class="warning">
-    <strong>Importante:</strong> en Zadig no cambies el controlador de <strong>NUCLEO_L073RZ CDC in FS Mode (0483:5740)</strong>. Utiliza Zadig únicamente con <strong>STM32 BOOTLOADER (0483:DF11)</strong>. No desconectes la T-Impulse durante la instalación.
-  </div>
 </section>
 
 <aside class="card">
-  <h2>Procedimiento</h2>
+  <h2>Ayuda</h2>
+
+  <h3>Antes de comenzar</h3>
   <ol>
-    <li>Selecciona el perfil de radio correspondiente a tu pulsera.</li>
-    <li>Conecta la T-Impulse mediante un cable USB de datos.</li>
-    <li>Coloca obligatoriamente la T-Impulse en <strong>modo DFU</strong> antes de continuar.</li>
-    <li>En Windows, verifica que el dispositivo DFU utilice el controlador <strong>WinUSB</strong>. Si es necesario, puedes configurarlo con <strong>Zadig</strong>.</li>
-    <li>En Zadig selecciona únicamente <strong>STM32 BOOTLOADER (0483:DF11)</strong> y asígnale <strong>WinUSB</strong>. No modifiques el dispositivo <strong>NUCLEO_L073RZ CDC in FS Mode (0483:5740)</strong>.</li>
-    <li>Cierra Zadig y cualquier otro programa que pueda estar utilizando la T-Impulse.</li>
-    <li>Pulsa <strong>Conectar dispositivo</strong> y selecciona el dispositivo STM32 en modo DFU.</li>
-    <li>Completa y revisa la configuración APRS. Si activas TX, confirma expresamente la transmisión.</li>
-    <li>Pulsa <strong>Instalar firmware</strong>. El navegador personalizará una copia del firmware antes de grabarla.</li>
-    <li>No desconectes la pulsera hasta que aparezca el mensaje de instalación completada.</li>
+    <li>Usa Chrome o Edge y un cable USB de datos.</li>
+    <li>Selecciona el perfil correcto: 433, 868 o 915 MHz.</li>
+    <li>Completa tu configuración APRS.</li>
+    <li>Si activas <strong>TX</strong>, deberás confirmarlo expresamente antes de instalar.</li>
   </ol>
+
+  <h3>Conexión DFU</h3>
+  <ol>
+    <li>Coloca la T-Impulse en <strong>modo DFU</strong>.</li>
+    <li>En Windows, el dispositivo DFU debe utilizar <strong>WinUSB</strong>.</li>
+    <li>Si usas Zadig, selecciona únicamente el dispositivo con <strong>VID 0483 / PID DF11</strong>. El nombre puede variar.</li>
+    <li>No cambies con Zadig el controlador del dispositivo cuando la T-Impulse esté en modo normal.</li>
+    <li>Cierra Zadig y cualquier programa que pueda estar usando la pulsera.</li>
+  </ol>
+
+  <h3>Instalación</h3>
+  <ol>
+    <li>Pulsa <strong>Conectar dispositivo</strong> y selecciona la T-Impulse.</li>
+    <li>Revisa los datos y pulsa <strong>Instalar firmware</strong>.</li>
+    <li>No desconectes la pulsera hasta que aparezca <strong>instalación completada</strong>.</li>
+  </ol>
+
+  <div class="status">
+    <strong>Configuración guardada:</strong> el navegador recuerda tus datos para futuras instalaciones. La confirmación de TX no se guarda y debe realizarse nuevamente.
+  </div>
 </aside>
 
 </div>
 
-<footer>Indy Open Wristband · Indy Open Project by XE3JAC · Web Flasher v0.1.9</footer>
+<footer>Indy Open Wristband · Indy Open Project by XE3JAC · Web Flasher v0.1.12</footer>
 
 </main>
 
-<script src="vendor/dfu.js?v=0.1.9"></script>
-<script src="vendor/dfuse.js?v=0.1.9"></script>
+<script src="vendor/dfu.js?v=0.1.12"></script>
+<script src="vendor/dfuse.js?v=0.1.12"></script>
 <script>
 const USB_VID = 0x0483;
 const USB_PID = 0xDF11;
@@ -863,10 +872,80 @@ ${fw.version || ""}
 });
 
 
+
+const USER_CONFIG_STORAGE_KEY = "indyOpenWristband.userConfig.v1";
+
+function loadSavedUserConfig(){
+  try{
+    const raw = localStorage.getItem(USER_CONFIG_STORAGE_KEY);
+    if(!raw) return;
+
+    const saved = JSON.parse(raw);
+
+    if(typeof saved.callsign === "string") $("callsign").value = saved.callsign.slice(0,9).toUpperCase();
+    if(typeof saved.comment === "string") $("comment").value = saved.comment.slice(0,39);
+
+    const numericFields = [
+      ["stationaryInterval", saved.stationary, 10, 86400],
+      ["walkingInterval", saved.walking, 10, 86400],
+      ["drivingInterval", saved.driving, 10, 86400],
+      ["txPower", saved.txPower, 2, 20]
+    ];
+
+    for(const [id,value,min,max] of numericFields){
+      const n = Number(value);
+      if(Number.isFinite(n) && n >= min && n <= max){
+        $(id).value = String(Math.trunc(n));
+      }
+    }
+
+    $("txEnabled").checked = saved.txEnabled === true || saved.txEnabled === 1;
+    $("txConfirmBox").classList.toggle("hidden", !$("txEnabled").checked);
+
+    // La confirmación de TX nunca se recuerda; debe aceptarse nuevamente
+    // en cada sesión/instalación.
+    $("txConfirm").checked = false;
+
+    log("Configuración guardada cargada.");
+  }catch{
+    // Si los datos locales están dañados, simplemente se ignoran.
+  }
+}
+
+function saveUserConfig(){
+  try{
+    const data = {
+      callsign: String($("callsign").value || "").trim().toUpperCase().slice(0,9),
+      comment: String($("comment").value || "").slice(0,39),
+      stationary: Number($("stationaryInterval").value),
+      walking: Number($("walkingInterval").value),
+      driving: Number($("drivingInterval").value),
+      txPower: Number($("txPower").value),
+      txEnabled: $("txEnabled").checked
+    };
+    localStorage.setItem(USER_CONFIG_STORAGE_KEY, JSON.stringify(data));
+  }catch{
+    // localStorage puede estar bloqueado por configuración de privacidad.
+  }
+}
+
+[
+  "callsign",
+  "comment",
+  "stationaryInterval",
+  "walkingInterval",
+  "drivingInterval",
+  "txPower",
+  "txEnabled"
+].forEach(id => {
+  $(id).addEventListener(id === "txEnabled" ? "change" : "input", saveUserConfig);
+});
+
 $("txEnabled").addEventListener("change", () => {
   const enabled = $("txEnabled").checked;
   $("txConfirmBox").classList.toggle("hidden", !enabled);
   if(!enabled) $("txConfirm").checked = false;
+  saveUserConfig();
 });
 
 $("callsign").addEventListener("input", () => {
@@ -875,6 +954,8 @@ $("callsign").addEventListener("input", () => {
   input.value = input.value.toUpperCase();
   try{ input.setSelectionRange(pos, pos); }catch{}
 });
+
+loadSavedUserConfig();
 
 if("usb" in navigator && window.isSecureContext){
   $("supportStatus").className = "status ok";
