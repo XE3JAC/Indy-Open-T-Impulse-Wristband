@@ -12,7 +12,7 @@ El proyecto aprovecha el **STM32L073RZ**, el posicionamiento GNSS y la
 radio **LoRa** para transmitir balizas APRS y mostrar en la muñeca
 información útil como hora, satélites, batería y estado de transmisión.
 
-> ## 🚧EL PROYECTO ESTA EN CONTINUO DESARROLLO
+> ## 🚧 EL PROYECTO ESTA EN CONTINUO DESARROLLO 🚧
 >
 > Si quieres seguir la evolución del proyecto, utiliza ⭐ **Star** y 👀
 > **Watch** en GitHub para recibir las próximas actualizaciones.
@@ -158,7 +158,6 @@ Muestra el modo de consumo actual:
 ```text
 MODO
 AHORRO
-DOBLE TOQUE
 ```
 
 Puede mostrar `ACTIVO` o `AHORRO`.
