@@ -120,7 +120,7 @@ Listo.</pre>
 
 </div>
 
-<footer>Indy Open Wristband · Indy Open Project by XE3JAC · Web Flasher v0.1.2</footer>
+<footer>Indy Open Wristband · Indy Open Project by XE3JAC · Web Flasher v0.1.3</footer>
 
 </main>
 
@@ -129,6 +129,7 @@ const USB_VID = 0x0483;
 const USB_PID = 0xDF11;
 const FLASH_ADDRESS = 0x08000000;
 const FALLBACK_TRANSFER_SIZE = 1024;
+const FALLBACK_FLASH_PAGE_SIZE = 128;
 
 const DFU_DNLOAD = 1;
 const DFU_GETSTATUS = 3;
@@ -165,6 +166,7 @@ let device = null;
 let interfaceNumber = null;
 let alternateSetting = 0;
 let transferSize = FALLBACK_TRANSFER_SIZE;
+let flashPageSize = FALLBACK_FLASH_PAGE_SIZE;
 
 const $ = id => document.getElementById(id);
 
@@ -193,6 +195,31 @@ function sleep(ms){
 
 function fmtHex(n, width=4){
   return Number(n).toString(16).toUpperCase().padStart(width, "0");
+}
+
+function parseDfusePageSize(interfaceName){
+  // Typical DfuSe map:
+  // @Internal Flash  /0x08000000/1536*128 g
+  // Units: B, K, M (case-insensitive). We only need the first erase segment.
+  const text = String(interfaceName || "");
+  const match = text.match(/\/0x[0-9a-fA-F]+\/\s*\d+\s*\*\s*(\d+)\s*([bBkKmM]?)/);
+  if(!match) return null;
+
+  const value = Number(match[1]);
+  const unit = (match[2] || "B").toUpperCase();
+
+  if(!Number.isFinite(value) || value <= 0) return null;
+  if(unit === "K") return value * 1024;
+  if(unit === "M") return value * 1024 * 1024;
+  return value;
+}
+
+function alignDown(value, alignment){
+  return Math.floor(value / alignment) * alignment;
+}
+
+function alignUp(value, alignment){
+  return Math.ceil(value / alignment) * alignment;
 }
 
 function renderSelection(){
@@ -394,15 +421,52 @@ async function setAddressPointer(address){
   await ensureDfuIdle();
   await dnload(0, addressCommand(address));
   await waitDownloadIdle("SET_ADDRESS_POINTER");
-  log(`Dirección DFU establecida: 0x${fmtHex(address,8)}.`);
+  log("Memoria lista para escritura.");
 }
 
-async function massErase(){
+async function erasePage(address){
   await ensureDfuIdle();
-  log("Solicitando borrado de flash mediante DfuSe…");
-  await dnload(0, new Uint8Array([0x41]));
-  await waitDownloadIdle("ERASE");
-  log("Borrado DfuSe completado.");
+
+  // DfuSe ERASE_PAGE: 0x41 + 32-bit little-endian page address.
+  const command = new Uint8Array([
+    0x41,
+    address & 0xff,
+    (address >>> 8) & 0xff,
+    (address >>> 16) & 0xff,
+    (address >>> 24) & 0xff
+  ]);
+
+  await dnload(0, command);
+  await waitDownloadIdle(`ERASE 0x${fmtHex(address,8)}`);
+}
+
+async function eraseFirmwareRange(startAddress, byteLength){
+  const pageSize = flashPageSize || FALLBACK_FLASH_PAGE_SIZE;
+  const firstPage = alignDown(startAddress, pageSize);
+  const endAddress = startAddress + byteLength;
+  const eraseEnd = alignUp(endAddress, pageSize);
+  const pageCount = Math.ceil((eraseEnd - firstPage) / pageSize);
+
+  log(`Preparando memoria para ${byteLength} bytes de firmware.`);
+  log(`Borrado por páginas: ${pageCount} páginas de ${pageSize} bytes.`);
+
+  for(let i = 0; i < pageCount; i++){
+    const address = firstPage + (i * pageSize);
+    await erasePage(address);
+
+    const pct = ((i + 1) / pageCount) * 8;
+    setProgress(pct);
+    setResult(`Preparando memoria… ${Math.round(((i + 1) / pageCount) * 100)} %`);
+
+    if(
+      (i + 1) % Math.max(1, Math.floor(pageCount / 10)) === 0 ||
+      i === pageCount - 1
+    ){
+      log(`Preparando memoria: ${Math.round(((i + 1) / pageCount) * 100)} %`);
+    }
+  }
+
+  log("Memoria preparada correctamente.");
 }
 
 async function connectBoard(){
@@ -477,7 +541,21 @@ async function connectBoard(){
   renderSelection();
   setResult("STM32 DFU conectado. Listo para instalar.", "ok");
   log(`STM32 DFU conectado. Interfaz ${interfaceNumber}, alt ${alternateSetting}.`);
-  if(dfu.interfaceName) log(`Memoria DFU: ${dfu.interfaceName}`);
+  if(dfu.interfaceName){
+    log(`Memoria DFU detectada.`);
+
+    const detectedPageSize = parseDfusePageSize(dfu.interfaceName);
+    if(detectedPageSize){
+      flashPageSize = detectedPageSize;
+      log(`Tamaño de página detectado: ${flashPageSize} bytes.`);
+    }else{
+      flashPageSize = FALLBACK_FLASH_PAGE_SIZE;
+      log(`Tamaño de página de respaldo: ${flashPageSize} bytes.`);
+    }
+  }else{
+    flashPageSize = FALLBACK_FLASH_PAGE_SIZE;
+    log(`Tamaño de página de respaldo: ${flashPageSize} bytes.`);
+  }
 }
 
 async function downloadFirmware(){
@@ -523,9 +601,9 @@ async function flashFirmware(){
   setProgress(0);
 
   try{
-    setResult("Preparando memoria flash…");
-    await massErase();
-    setProgress(5);
+    setResult("Preparando memoria…");
+    await eraseFirmwareRange(FLASH_ADDRESS, data.length);
+    setProgress(8);
 
     await setAddressPointer(FLASH_ADDRESS);
 
@@ -541,7 +619,7 @@ async function flashFirmware(){
       await dnload(blockNumber, chunk);
       await waitDownloadIdle(`bloque ${blockNumber}`);
 
-      const pct = 5 + ((i + 1) / totalBlocks) * 93;
+      const pct = 8 + ((i + 1) / totalBlocks) * 90;
       setProgress(pct);
       setResult(`Instalando firmware… ${Math.min(100, ((i+1)/totalBlocks)*100).toFixed(1)} %`);
 
@@ -624,7 +702,7 @@ $("flashBtn").addEventListener("click", async () => {
 
   if(!confirm(
     `Se instalará:\n\n${PROFILES[selectedKey].label}\n${fw.version || ""}\n\n` +
-    `Dirección: 0x${fmtHex(FLASH_ADDRESS,8)}\n\n¿Deseas continuar?`
+    `¿Deseas continuar?`
   )) return;
 
   try{
