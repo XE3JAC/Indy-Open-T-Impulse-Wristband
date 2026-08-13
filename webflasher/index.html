@@ -1,1 +1,674 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Web Flasher de Indy Open para LILYGO T-Impulse STM32L073RZ mediante STM32 DFU/DfuSe WebUSB.">
+<title>Indy Open Wristband — Web Flasher</title>
+<style>
+:root{
+  --bg:#f4f8f9;--panel:#fff;--text:#17363b;--muted:#657a7f;--accent:#0e7c86;
+  --accent-dark:#095a61;--line:#d9e5e7;--warning:#fff4d8;--warning-line:#d7a52b;
+  --ok:#e8f5ec;--ok-line:#4d9b62;--error:#fdeaea;--error-line:#c85c5c
+}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:linear-gradient(180deg,#e9f4f5 0,var(--bg) 280px);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.6}
+.wrap{width:min(1000px,calc(100% - 32px));margin:0 auto;padding:36px 0 64px}
+.hero{background:linear-gradient(135deg,var(--accent-dark),#1598a3);color:#fff;border-radius:22px;padding:34px}
+.eyebrow{font-size:.9rem;opacity:.84;margin-bottom:5px}
+h1{margin:0;font-size:clamp(2rem,7vw,4.2rem);line-height:1;letter-spacing:-.04em}
+.hero p{max-width:760px;font-size:1.05rem;margin-bottom:0}
+.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;margin-top:20px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px}
+h2{margin-top:0;color:var(--accent-dark)}
+h3{color:var(--accent-dark);margin-bottom:8px}
+.status{margin:14px 0;padding:12px 14px;border-radius:10px;background:#f8fbfb;border-left:4px solid var(--line)}
+.status.ok{background:var(--ok);border-left-color:var(--ok-line)}
+.status.error{background:var(--error);border-left-color:var(--error-line)}
+.warning{background:var(--warning);border-left:4px solid var(--warning-line);padding:14px 16px;border-radius:10px;margin-top:18px}
+.small{font-size:.88rem;color:var(--muted)}
+button{appearance:none;border:0;background:var(--accent);color:#fff;padding:12px 16px;border-radius:12px;font-weight:700;font-size:1rem;cursor:pointer}
+button:hover{background:var(--accent-dark)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+.progress{width:100%;height:16px;border-radius:999px;background:#e8eff0;overflow:hidden;margin:12px 0}
+.progress>div{height:100%;width:0;background:var(--accent);transition:width .12s}
+pre{background:#102a2e;color:#d8f0f2;padding:14px;border-radius:12px;max-height:320px;overflow:auto;font-size:.82rem;white-space:pre-wrap}
+ol{padding-left:1.3rem}
+.selector{display:grid;grid-template-columns:1fr;gap:10px;margin:16px 0}
+.option{display:block;border:2px solid var(--line);border-radius:14px;padding:14px;cursor:pointer;background:#fff}
+.option.selected{border-color:var(--accent);background:#f3fbfb}
+.option input{margin-right:8px}
+.option strong{color:var(--accent-dark)}
+.option .small{display:block;margin:4px 0 0 24px}
+code{overflow-wrap:anywhere}
+footer{color:var(--muted);text-align:center;font-size:.9rem;margin-top:28px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.hero{padding:26px 22px}}
+</style>
+</head>
+<body>
+<main class="wrap">
 
+<section class="hero">
+  <div class="eyebrow">Indy Open Project by XE3JAC</div>
+  <h1>INDY OPEN WRISTBAND</h1>
+  <p>Web Flasher para LILYGO T-Impulse con STM32L073RZ mediante STM32 DFU/DfuSe por WebUSB.</p>
+</section>
+
+<div class="grid">
+
+<section class="card">
+  <h2>Instalar firmware</h2>
+
+  <div class="selector">
+    <label class="option selected" id="opt433">
+      <input type="radio" name="profile" value="s78g433" checked>
+      <strong>S78G · SX1278 · 433.775 MHz</strong>
+      <span class="small">Dry-run · TX desactivado · <span id="ver433">consultando…</span></span>
+    </label>
+
+    <label class="option" id="opt868">
+      <input type="radio" name="profile" value="s76g868">
+      <strong>S76G · SX1276 · 868.200 MHz</strong>
+      <span class="small">Dry-run · TX desactivado · <span id="ver868">consultando…</span></span>
+    </label>
+
+    <label class="option" id="opt915">
+      <input type="radio" name="profile" value="s76g915">
+      <strong>S76G · SX1276 · 915.000 MHz</strong>
+      <span class="small">Dry-run · TX desactivado · <span id="ver915">consultando…</span></span>
+    </label>
+  </div>
+
+  <div id="supportStatus" class="status">Comprobando compatibilidad…</div>
+
+  <div class="actions">
+    <button id="connectBtn">1. Conectar STM32 DFU</button>
+    <button id="flashBtn" disabled>2. Instalar firmware</button>
+  </div>
+
+  <div class="status">
+    <strong>Equipo:</strong> LILYGO T-Impulse · STM32L073RZ<br>
+    <strong>USB requerido:</strong> 0483:DF11<br>
+    <strong>Firmware:</strong> <span id="selectedFirmware">S78G · 433.775 MHz</span><br>
+    <strong>Versión:</strong> <span id="selectedVersion">consultando…</span><br>
+    <strong>Transferencia DFU:</strong> <span id="transferSize">sin detectar</span><br>
+    <strong>Estado:</strong> <span id="deviceState">sin conectar</span>
+  </div>
+
+  <div class="small" id="progressText"><strong>Progreso de instalación:</strong> 0 %</div>
+  <div class="progress"><div id="progressBar"></div></div>
+  <div id="resultStatus" class="status">Consultando firmwares disponibles…</div>
+
+  <h3>Consola</h3>
+  <pre id="log">Indy Open Wristband — Web Flasher
+Listo.</pre>
+
+  <div class="warning">
+    <strong>Importante:</strong> este instalador sólo acepta un dispositivo STM32 DFU con VID <code>0483</code> y PID <code>DF11</code>. La escritura comienza en <code>0x08000000</code>.
+  </div>
+</section>
+
+<aside class="card">
+  <h2>Procedimiento</h2>
+  <ol>
+    <li>Selecciona el perfil de radio correcto para tu T-Impulse.</li>
+    <li>Coloca la pulsera en modo bootloader STM32 DFU.</li>
+    <li>Conéctala mediante un cable USB de datos.</li>
+    <li>Pulsa <strong>Conectar STM32 DFU</strong> y selecciona <strong>0483:DF11</strong>.</li>
+    <li>Verifica que el Web Flasher detecte una interfaz DFU con descarga/escritura.</li>
+    <li>Pulsa <strong>Instalar firmware</strong>.</li>
+    <li>No desconectes la pulsera hasta que aparezca el mensaje de instalación completada.</li>
+  </ol>
+
+  <div class="status">
+    <strong>DFU:</strong> compatible con descriptores STM32 DfuSe 1.1a. El tamaño de transferencia se lee del descriptor DFU; si no está disponible se usan <strong>1024 bytes</strong>.
+  </div>
+
+  <div class="warning">
+    <strong>Atención:</strong> los tres perfiles actuales están marcados como <strong>Dry-run, TX desactivado</strong>.
+  </div>
+</aside>
+
+</div>
+
+<footer>Indy Open Wristband · Indy Open Project by XE3JAC · Web Flasher v0.1.1</footer>
+
+</main>
+
+<script>
+const USB_VID = 0x0483;
+const USB_PID = 0xDF11;
+const FLASH_ADDRESS = 0x08000000;
+const FALLBACK_TRANSFER_SIZE = 1024;
+
+const DFU_DNLOAD = 1;
+const DFU_GETSTATUS = 3;
+const DFU_CLRSTATUS = 4;
+const DFU_GETSTATE = 5;
+const DFU_ABORT = 6;
+
+const DFU_STATE = {
+  appIDLE:0, appDETACH:1, dfuIDLE:2, dfuDNLOAD_SYNC:3, dfuDNBUSY:4,
+  dfuDNLOAD_IDLE:5, dfuMANIFEST_SYNC:6, dfuMANIFEST:7,
+  dfuMANIFEST_WAIT_RESET:8, dfuUPLOAD_IDLE:9, dfuERROR:10
+};
+
+const CATALOG_URL = "firmware/catalog.json";
+
+const PROFILES = {
+  s78g433: {
+    label: "S78G · SX1278 · 433.775 MHz",
+    versionEl: "ver433"
+  },
+  s76g868: {
+    label: "S76G · SX1276 · 868.200 MHz",
+    versionEl: "ver868"
+  },
+  s76g915: {
+    label: "S76G · SX1276 · 915.000 MHz",
+    versionEl: "ver915"
+  }
+};
+
+let selectedKey = "s78g433";
+let catalog = {};
+let device = null;
+let interfaceNumber = null;
+let alternateSetting = 0;
+let transferSize = FALLBACK_TRANSFER_SIZE;
+
+const $ = id => document.getElementById(id);
+
+function log(msg){
+  const el = $("log");
+  el.textContent += `\n[${new Date().toLocaleTimeString()}] ${msg}`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function setResult(text, cls=""){
+  const el = $("resultStatus");
+  el.className = "status" + (cls ? " " + cls : "");
+  el.textContent = text;
+}
+
+function setProgress(p){
+  const value = Math.max(0, Math.min(100, p));
+  $("progressBar").style.width = `${value}%`;
+  $("progressText").innerHTML =
+    `<strong>Progreso de instalación:</strong> ${value.toFixed(0)} %`;
+}
+
+function sleep(ms){
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function fmtHex(n, width=4){
+  return Number(n).toString(16).toUpperCase().padStart(width, "0");
+}
+
+function renderSelection(){
+  document.querySelectorAll(".option").forEach(el => el.classList.remove("selected"));
+  const optId = selectedKey === "s78g433" ? "opt433" : selectedKey === "s76g868" ? "opt868" : "opt915";
+  $(optId).classList.add("selected");
+
+  const cfg = PROFILES[selectedKey];
+  const fw = catalog[selectedKey];
+
+  $("selectedFirmware").textContent = cfg.label;
+  $("selectedVersion").textContent = fw?.version || "no disponible";
+  $("flashBtn").textContent = fw?.version
+    ? `2. Instalar ${fw.version}`
+    : "2. Instalar firmware";
+
+  $("flashBtn").disabled = !(device && fw);
+}
+
+async function loadCatalog(){
+  setResult("Consultando firmwares disponibles…");
+  log("Consultando catálogo de firmware…");
+
+  const response = await fetch(`${CATALOG_URL}?nocache=${Date.now()}`, {cache:"no-store"});
+  if(!response.ok){
+    throw new Error(`No fue posible consultar firmware/catalog.json (HTTP ${response.status}).`);
+  }
+
+  const data = await response.json();
+  catalog = data.profiles || {};
+
+  for(const [key, cfg] of Object.entries(PROFILES)){
+    const fw = catalog[key];
+    $(cfg.versionEl).textContent = fw?.version || "no disponible";
+    if(fw?.version) log(`${cfg.label}: ${fw.version} disponible.`);
+  }
+
+  renderSelection();
+  setResult("Firmwares disponibles. Coloca la T-Impulse en modo STM32 DFU.", "ok");
+}
+
+function findDfuInterface(){
+  if(!device?.configuration) return null;
+
+  for(const iface of device.configuration.interfaces){
+    for(const alt of iface.alternates){
+      const isDfu =
+        alt.interfaceClass === 0xFE &&
+        alt.interfaceSubclass === 0x01;
+
+      if(isDfu){
+        return {
+          interfaceNumber: iface.interfaceNumber,
+          alternateSetting: alt.alternateSetting,
+          interfaceName: alt.interfaceName || "",
+          protocol: alt.interfaceProtocol
+        };
+      }
+    }
+  }
+  return null;
+}
+
+async function readDfuFunctionalDescriptor(ifaceNo){
+  try{
+    const result = await device.controlTransferIn({
+      requestType:"standard",
+      recipient:"interface",
+      request:0x06,
+      value:(0x21 << 8),
+      index:ifaceNo
+    }, 9);
+
+    if(result.status !== "ok" || !result.data || result.data.byteLength < 9){
+      throw new Error("descriptor DFU no disponible");
+    }
+
+    const dv = result.data;
+    const bLength = dv.getUint8(0);
+    const bDescriptorType = dv.getUint8(1);
+    const bmAttributes = dv.getUint8(2);
+    const wDetachTimeOut = dv.getUint16(3, true);
+    const wTransferSize = dv.getUint16(5, true);
+    const bcdDFUVersion = dv.getUint16(7, true);
+
+    if(bDescriptorType !== 0x21){
+      throw new Error(`descriptor inesperado 0x${fmtHex(bDescriptorType,2)}`);
+    }
+
+    return {bLength,bDescriptorType,bmAttributes,wDetachTimeOut,wTransferSize,bcdDFUVersion};
+  }catch(error){
+    log(`Aviso: no se pudo leer el descriptor funcional DFU (${error?.message || error}).`);
+    return null;
+  }
+}
+
+async function getStatus(){
+  const result = await device.controlTransferIn({
+    requestType:"class",
+    recipient:"interface",
+    request:DFU_GETSTATUS,
+    value:0,
+    index:interfaceNumber
+  }, 6);
+
+  if(result.status !== "ok" || !result.data || result.data.byteLength < 6){
+    throw new Error("DFU_GETSTATUS falló.");
+  }
+
+  const d = result.data;
+  return {
+    status:d.getUint8(0),
+    pollTimeout:d.getUint8(1) | (d.getUint8(2)<<8) | (d.getUint8(3)<<16),
+    state:d.getUint8(4),
+    iString:d.getUint8(5)
+  };
+}
+
+async function clearStatus(){
+  await device.controlTransferOut({
+    requestType:"class", recipient:"interface",
+    request:DFU_CLRSTATUS, value:0, index:interfaceNumber
+  });
+}
+
+async function abortDfu(){
+  await device.controlTransferOut({
+    requestType:"class", recipient:"interface",
+    request:DFU_ABORT, value:0, index:interfaceNumber
+  });
+}
+
+async function ensureDfuIdle(){
+  let st = await getStatus();
+
+  if(st.state === DFU_STATE.dfuERROR){
+    await clearStatus();
+    await sleep(20);
+    st = await getStatus();
+  }
+
+  if(st.state === DFU_STATE.dfuDNLOAD_IDLE || st.state === DFU_STATE.dfuUPLOAD_IDLE){
+    await abortDfu();
+    await sleep(20);
+    st = await getStatus();
+  }
+
+  if(st.state !== DFU_STATE.dfuIDLE){
+    throw new Error(`El dispositivo DFU no está listo (estado ${st.state}, status ${st.status}).`);
+  }
+}
+
+async function waitDownloadIdle(label){
+  for(let i=0;i<100;i++){
+    const st = await getStatus();
+
+    if(st.status !== 0){
+      throw new Error(`${label}: error DFU status ${st.status}, estado ${st.state}.`);
+    }
+
+    if(st.state === DFU_STATE.dfuDNLOAD_IDLE || st.state === DFU_STATE.dfuIDLE){
+      return st;
+    }
+
+    if(st.state === DFU_STATE.dfuERROR){
+      throw new Error(`${label}: el dispositivo entró en dfuERROR.`);
+    }
+
+    await sleep(Math.max(5, Math.min(st.pollTimeout || 5, 5000)));
+  }
+  throw new Error(`${label}: tiempo de espera agotado.`);
+}
+
+async function dnload(blockNumber, bytes){
+  const result = await device.controlTransferOut({
+    requestType:"class",
+    recipient:"interface",
+    request:DFU_DNLOAD,
+    value:blockNumber,
+    index:interfaceNumber
+  }, bytes);
+
+  if(result.status !== "ok"){
+    throw new Error(`DFU_DNLOAD bloque ${blockNumber} falló (${result.status}).`);
+  }
+}
+
+function addressCommand(address){
+  return new Uint8Array([
+    0x21,
+    address & 0xff,
+    (address >>> 8) & 0xff,
+    (address >>> 16) & 0xff,
+    (address >>> 24) & 0xff
+  ]);
+}
+
+async function setAddressPointer(address){
+  await ensureDfuIdle();
+  await dnload(0, addressCommand(address));
+  await waitDownloadIdle("SET_ADDRESS_POINTER");
+  log(`Dirección DFU establecida: 0x${fmtHex(address,8)}.`);
+}
+
+async function massErase(){
+  await ensureDfuIdle();
+  log("Solicitando borrado de flash mediante DfuSe…");
+  await dnload(0, new Uint8Array([0x41]));
+  await waitDownloadIdle("ERASE");
+  log("Borrado DfuSe completado.");
+}
+
+async function connectBoard(){
+  if(!("usb" in navigator)){
+    throw new Error("Tu navegador no permite WebUSB.");
+  }
+
+  if(device?.opened){
+    try{ await device.close(); }catch{}
+  }
+
+  setResult("Selecciona el dispositivo STM32 DFU 0483:DF11…");
+  log("Esperando selección del dispositivo USB…");
+
+  device = await navigator.usb.requestDevice({
+    filters:[{vendorId:USB_VID, productId:USB_PID}]
+  });
+
+  if(device.vendorId !== USB_VID || device.productId !== USB_PID){
+    throw new Error(
+      `Dispositivo USB no permitido: ${fmtHex(device.vendorId)}:${fmtHex(device.productId)}.`
+    );
+  }
+
+  await device.open();
+
+  if(!device.configuration){
+    await device.selectConfiguration(1);
+  }
+
+  const dfu = findDfuInterface();
+  if(!dfu){
+    throw new Error("No se encontró una interfaz USB DFU válida.");
+  }
+
+  interfaceNumber = dfu.interfaceNumber;
+  alternateSetting = dfu.alternateSetting;
+
+  await device.claimInterface(interfaceNumber);
+
+  if(alternateSetting){
+    await device.selectAlternateInterface(interfaceNumber, alternateSetting);
+  }
+
+  const descriptor = await readDfuFunctionalDescriptor(interfaceNumber);
+
+  if(descriptor){
+    const canDownload = !!(descriptor.bmAttributes & 0x01);
+    if(!canDownload){
+      throw new Error("La interfaz DFU no anuncia capacidad de descarga/escritura.");
+    }
+
+    transferSize = descriptor.wTransferSize || FALLBACK_TRANSFER_SIZE;
+    const ver = `0x${fmtHex(descriptor.bcdDFUVersion)}`;
+    log(`Descriptor DFU: versión ${ver}, transferencia ${transferSize} bytes.`);
+
+    if(descriptor.bcdDFUVersion === 0x011A){
+      log("DfuSe 1.1a detectado.");
+    }else{
+      log(`Aviso: versión DFU anunciada ${ver}; se continuará en modo compatible DfuSe.`);
+    }
+  }else{
+    transferSize = FALLBACK_TRANSFER_SIZE;
+    log(`Se usará el tamaño de transferencia de respaldo: ${transferSize} bytes.`);
+  }
+
+  await ensureDfuIdle();
+
+  $("transferSize").textContent = `${transferSize} bytes`;
+  $("deviceState").textContent =
+    `STM32 DFU conectado (${fmtHex(device.vendorId)}:${fmtHex(device.productId)})`;
+
+  renderSelection();
+  setResult("STM32 DFU conectado. Listo para instalar.", "ok");
+  log(`STM32 DFU conectado. Interfaz ${interfaceNumber}, alt ${alternateSetting}.`);
+  if(dfu.interfaceName) log(`Memoria DFU: ${dfu.interfaceName}`);
+}
+
+async function downloadFirmware(){
+  const fw = catalog[selectedKey];
+  if(!fw?.url){
+    throw new Error("No hay firmware disponible para el perfil seleccionado.");
+  }
+
+  setResult(`Descargando ${fw.version || "firmware"}…`);
+  log(`Descargando ${PROFILES[selectedKey].label}…`);
+
+  const firmwareUrl = new URL(fw.url, location.href);
+  firmwareUrl.searchParams.set("v", fw.version || Date.now());
+
+  const response = await fetch(firmwareUrl.href, {cache:"no-store"});
+  if(!response.ok){
+    throw new Error(`No fue posible descargar el firmware (HTTP ${response.status}).`);
+  }
+
+  const data = new Uint8Array(await response.arrayBuffer());
+  if(data.length < 256){
+    throw new Error(`El firmware descargado no parece válido (${data.length} bytes).`);
+  }
+
+  log(`Firmware preparado: ${data.length} bytes.`);
+  return data;
+}
+
+async function flashFirmware(){
+  if(!device?.opened){
+    throw new Error("Primero conecta la T-Impulse en modo STM32 DFU.");
+  }
+
+  const fw = catalog[selectedKey];
+  if(!fw){
+    throw new Error("No hay firmware disponible para el perfil seleccionado.");
+  }
+
+  const data = await downloadFirmware();
+
+  $("connectBtn").disabled = true;
+  $("flashBtn").disabled = true;
+  setProgress(0);
+
+  try{
+    setResult("Preparando memoria flash…");
+    await massErase();
+    setProgress(5);
+
+    await setAddressPointer(FLASH_ADDRESS);
+
+    const totalBlocks = Math.ceil(data.length / transferSize);
+    log(`Escribiendo ${totalBlocks} bloques de hasta ${transferSize} bytes…`);
+
+    for(let i=0;i<totalBlocks;i++){
+      const start = i * transferSize;
+      const end = Math.min(start + transferSize, data.length);
+      const chunk = data.slice(start, end);
+      const blockNumber = i + 2;
+
+      await dnload(blockNumber, chunk);
+      await waitDownloadIdle(`bloque ${blockNumber}`);
+
+      const pct = 5 + ((i + 1) / totalBlocks) * 93;
+      setProgress(pct);
+      setResult(`Instalando firmware… ${Math.min(100, ((i+1)/totalBlocks)*100).toFixed(1)} %`);
+
+      if((i+1) % Math.max(1, Math.floor(totalBlocks/10)) === 0 || i === totalBlocks-1){
+        log(`Escritura: ${Math.round(((i+1)/totalBlocks)*100)} %`);
+      }
+    }
+
+    setProgress(99);
+    setResult("Finalizando instalación…");
+    log("Enviando fin de descarga DFU…");
+
+    try{
+      await dnload(totalBlocks + 2, new Uint8Array(0));
+
+      for(let i=0;i<20;i++){
+        let st;
+        try{
+          st = await getStatus();
+        }catch{
+          break;
+        }
+
+        if(st.pollTimeout) await sleep(Math.min(st.pollTimeout, 3000));
+        if(
+          st.state === DFU_STATE.dfuMANIFEST_WAIT_RESET ||
+          st.state === DFU_STATE.dfuIDLE
+        ) break;
+      }
+    }catch(error){
+      // Muchos bootloaders STM32 desconectan USB al manifestar/reiniciar.
+      log("El dispositivo cerró la sesión DFU durante la finalización; puede ser el reinicio normal.");
+    }
+
+    setProgress(100);
+    $("deviceState").textContent = "instalación completada";
+    setResult(
+      `Instalación completada: ${PROFILES[selectedKey].label} ${fw.version || ""}. Ya puedes desconectar la T-Impulse.`,
+      "ok"
+    );
+    log("Instalación completada.");
+    log("Ya puedes desconectar la LILYGO T-Impulse.");
+
+  } finally {
+    $("connectBtn").disabled = false;
+    $("flashBtn").disabled = !(device && catalog[selectedKey]);
+  }
+}
+
+document.querySelectorAll('input[name="profile"]').forEach(input => {
+  input.addEventListener("change", () => {
+    selectedKey = input.value;
+    renderSelection();
+    log(`Perfil seleccionado: ${PROFILES[selectedKey].label}.`);
+  });
+});
+
+$("connectBtn").addEventListener("click", async () => {
+  try{
+    await connectBoard();
+  }catch(e){
+    $("deviceState").textContent = "sin conectar";
+
+    const msg = String(e?.message || e || "");
+    if(e?.name === "NotFoundError" || /No device selected|cancel/i.test(msg)){
+      setResult("Conexión cancelada por el usuario.");
+      log("Conexión cancelada por el usuario.");
+    }else{
+      setResult(msg || "No fue posible conectar con STM32 DFU.", "error");
+      log(`ERROR: ${msg || e}`);
+    }
+
+    $("flashBtn").disabled = true;
+  }
+});
+
+$("flashBtn").addEventListener("click", async () => {
+  const fw = catalog[selectedKey];
+  if(!fw) return;
+
+  if(!confirm(
+    `Se instalará:\n\n${PROFILES[selectedKey].label}\n${fw.version || ""}\n\n` +
+    `Dirección: 0x${fmtHex(FLASH_ADDRESS,8)}\n\n¿Deseas continuar?`
+  )) return;
+
+  try{
+    await flashFirmware();
+  }catch(e){
+    setProgress(0);
+    setResult(e.message || String(e), "error");
+    log(`ERROR: ${e.message || e}`);
+  }
+});
+
+if("usb" in navigator && window.isSecureContext){
+  $("supportStatus").className = "status ok";
+  $("supportStatus").innerHTML =
+    "<strong>Navegador compatible.</strong> WebUSB está disponible.";
+}else{
+  $("supportStatus").className = "status error";
+  $("supportStatus").innerHTML =
+    "<strong>WebUSB no disponible.</strong> Usa Chrome o Edge mediante HTTPS.";
+  $("connectBtn").disabled = true;
+}
+
+loadCatalog().catch(e => {
+  setResult(e.message || String(e), "error");
+  log(`ERROR: ${e.message || e}`);
+  for(const cfg of Object.values(PROFILES)){
+    $(cfg.versionEl).textContent = "no disponible";
+  }
+  renderSelection();
+});
+</script>
+
+</body>
+</html>
