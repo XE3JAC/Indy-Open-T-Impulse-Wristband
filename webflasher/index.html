@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="description" content="Web Flasher de Indy Open para LILYGO T-Impulse STM32L073RZ mediante STM32 DFU/DfuSe WebUSB.">
 <title>Indy Open Wristband — Web Flasher</title>
 <style>
@@ -185,12 +188,12 @@ Listo.</pre>
 
 </div>
 
-<footer>Indy Open Wristband · Indy Open Project by XE3JAC · Web Flasher v0.1.5</footer>
+<footer>Indy Open Wristband · Indy Open Project by XE3JAC · Web Flasher v0.1.6</footer>
 
 </main>
 
-<script src="vendor/dfu.js"></script>
-<script src="vendor/dfuse.js"></script>
+<script src="vendor/dfu.js?v=0.1.6"></script>
+<script src="vendor/dfuse.js?v=0.1.6"></script>
 <script>
 const USB_VID = 0x0483;
 const USB_PID = 0xDF11;
@@ -340,6 +343,47 @@ function parseDescriptor(deviceWrapper){
   });
 }
 
+async function resolveDfuInterfaceNames(wrapper){
+  try{
+    const names = await wrapper.readInterfaceNames();
+    return names || {};
+  }catch(error){
+    log("No fue posible leer directamente el nombre de la memoria DFU; se intentará continuar con la información disponible.");
+    return {};
+  }
+}
+
+function resolvedInterfaceName(names, settings){
+  const conf = settings?.configuration?.configurationValue;
+  const intf = settings?.interface?.interfaceNumber;
+  const alt = settings?.alternate?.alternateSetting;
+
+  try{
+    return names?.[conf]?.[intf]?.[alt] || settings?.name || "";
+  }catch{
+    return settings?.name || "";
+  }
+}
+
+function isInternalFlashMemoryMap(name){
+  const text = String(name || "");
+  if(!text.startsWith("@")) return false;
+  if(!/0x08000000/i.test(text)) return false;
+
+  try{
+    const info = window.dfuse.parseMemoryDescriptor(text);
+    if(!info?.segments?.length) return false;
+    return info.segments.some(segment =>
+      segment.start <= FLASH_ADDRESS &&
+      segment.end > FLASH_ADDRESS &&
+      segment.writable &&
+      segment.erasable
+    );
+  }catch{
+    return false;
+  }
+}
+
 async function connectBoard(){
   if(!("usb" in navigator)){
     throw new Error("Tu navegador no permite WebUSB.");
@@ -353,7 +397,7 @@ async function connectBoard(){
     device = null;
   }
 
-  setResult("Selecciona el dispositivo STM32 en modo DFU…");
+  setResult("Selecciona la T-Impulse en modo DFU…");
   log("Esperando selección del dispositivo USB…");
 
   const usbDevice = await navigator.usb.requestDevice({
@@ -365,32 +409,127 @@ async function connectBoard(){
     throw new Error("El dispositivo no presenta una interfaz DFU válida.");
   }
 
-  const internalFlash =
+  // Abrimos primero una interfaz DFU para poder leer los string descriptors.
+  let initialSettings =
     interfaces.find(entry => /internal flash|0x08000000/i.test(entry.name || "")) ||
     interfaces[0];
 
-  let wrapper = new window.dfu.Device(usbDevice, internalFlash);
-  await wrapper.open();
+  let initialWrapper = new window.dfu.Device(usbDevice, initialSettings);
+  await initialWrapper.open();
 
-  const descriptor = await parseDescriptor(wrapper);
+  const descriptor = await parseDescriptor(initialWrapper);
   if(!descriptor.canDownload){
     throw new Error("La interfaz DFU no permite escritura.");
   }
 
+  // En algunos STM32/Chrome alt.interfaceName llega vacío.
+  // dfu.js puede obtener iInterface desde el descriptor de configuración
+  // y después leer explícitamente el string descriptor.
+  const interfaceNames = await resolveDfuInterfaceNames(initialWrapper);
+
+  let selectedSettings = null;
+
+  for(const settings of interfaces){
+    const name = resolvedInterfaceName(interfaceNames, settings);
+    if(name){
+      settings.name = name;
+    }
+
+    if(isInternalFlashMemoryMap(settings.name)){
+      selectedSettings = settings;
+      break;
+    }
+  }
+
+  if(!selectedSettings){
+    // Como último intento, revisamos la interfaz ya abierta.
+    initialSettings.name = resolvedInterfaceName(interfaceNames, initialSettings);
+    if(isInternalFlashMemoryMap(initialSettings.name)){
+      selectedSettings = initialSettings;
+    }
+  }
+
+  if(!selectedSettings){
+    try{ await initialWrapper.close(); }catch{}
+    throw new Error(
+      "No fue posible identificar el mapa de memoria interna de la T-Impulse. " +
+      "Desconecta la pulsera, vuelve a entrar en modo DFU y conéctala nuevamente."
+    );
+  }
+
+  // Si la interfaz correcta es otra alternate setting, cerramos y reabrimos.
+  const sameInterface =
+    selectedSettings.interface.interfaceNumber === initialSettings.interface.interfaceNumber &&
+    selectedSettings.alternate.alternateSetting === initialSettings.alternate.alternateSetting;
+
+  if(!sameInterface){
+    try{ await initialWrapper.close(); }catch{}
+    initialWrapper = new window.dfu.Device(usbDevice, selectedSettings);
+    await initialWrapper.open();
+  }else{
+    initialWrapper.settings = selectedSettings;
+  }
+
+  let wrapper = initialWrapper;
+
   if(
     descriptor.version === 0x011A &&
-    wrapper.settings?.alternate?.interfaceProtocol === 0x02
+    selectedSettings?.alternate?.interfaceProtocol === 0x02
   ){
-    wrapper = new window.dfuse.Device(wrapper.device_, wrapper.settings);
+    wrapper = new window.dfuse.Device(wrapper.device_, selectedSettings);
     wrapper.startAddress = FLASH_ADDRESS;
+  }else{
+    try{ await wrapper.close(); }catch{}
+    throw new Error("El bootloader conectado no presenta un modo STM32 DfuSe compatible.");
+  }
+
+  // Validación fuerte: nunca instalamos sin mapa de memoria válido.
+  if(
+    !wrapper.memoryInfo ||
+    !Array.isArray(wrapper.memoryInfo.segments) ||
+    !wrapper.memoryInfo.segments.length
+  ){
+    try{ await wrapper.close(); }catch{}
+    throw new Error(
+      "No fue posible obtener el mapa de memoria de la T-Impulse. " +
+      "No se realizó ningún borrado ni escritura."
+    );
+  }
+
+  const flashSegment = wrapper.memoryInfo.segments.find(segment =>
+    segment.start <= FLASH_ADDRESS &&
+    segment.end > FLASH_ADDRESS
+  );
+
+  if(!flashSegment || !flashSegment.writable || !flashSegment.erasable){
+    try{ await wrapper.close(); }catch{}
+    throw new Error(
+      "La memoria interna detectada no permite una instalación segura. " +
+      "No se realizó ningún cambio en la pulsera."
+    );
   }
 
   wrapper.logInfo = message => {
     const text = String(message || "");
+    if(!text) return;
+
+    const friendly = text
+      .replace(/Erasing DFU device memory/gi, "Preparando memoria del dispositivo")
+      .replace(/Copying data from browser to DFU device/gi, "Instalando firmware")
+      .replace(/Manifesting new firmware/gi, "Finalizando instalación")
+      .replace(/Wrote \d+ bytes/gi, "Firmware escrito correctamente")
+      .replace(/0x08000000/gi, "memoria interna");
+
+    log(friendly);
+  };
+  wrapper.logWarning = message => {
+    const text = String(message || "");
     if(text) log(text.replace(/0x08000000/gi, "memoria interna"));
   };
-  wrapper.logWarning = message => log(String(message || ""), "warning");
-  wrapper.logError = message => log(String(message || ""), "error");
+  wrapper.logError = message => {
+    const text = String(message || "");
+    if(text) log(text.replace(/0x08000000/gi, "memoria interna"));
+  };
   wrapper.logProgress = (done,total) => {
     if(total) setProgress((done/total)*100);
   };
@@ -403,6 +542,7 @@ async function connectBoard(){
   renderSelection();
   setResult("T-Impulse conectada. Completa la configuración y pulsa Instalar firmware.", "ok");
   log("T-Impulse detectada correctamente en modo DFU.");
+  log("Memoria interna detectada y validada.");
 }
 
 function crc32IsoHdlc(bytes){
@@ -725,8 +865,12 @@ ${fw.version || ""}
     await flashFirmware();
   }catch(e){
     setProgress(0);
-    setResult(e.message || String(e), "error");
-    log(`ERROR: ${e.message || e}`);
+    let message = e?.message || String(e);
+    if(String(message).includes("No memory map available")){
+      message = "No fue posible obtener el mapa de memoria de la T-Impulse. No se realizó ningún cambio.";
+    }
+    setResult(message, "error");
+    log(`ERROR: ${message}`);
   }
 });
 
