@@ -1,33 +1,33 @@
 {
-  "tag": "wristband-v0.1.7",
-  "generated_at": "2026-08-14T01:04:19.051577+00:00",
+  "tag": "wristband-v0.1.8",
+  "generated_at": "2026-08-14T02:38:11.114861+00:00",
   "profiles": {
     "s78g433": {
-      "version": "v0.1.7",
+      "version": "v0.1.8",
       "url": "firmware/indy-open-wristband-s78g-433-latest.bin",
-      "source_asset": "indy-open-wristband-s78g-433-v0.1.7.bin",
-      "size": 107076,
-      "sha256": "044e3289949d3a0b82014d6e6055d6fe802cbd1bd44ff524641503320363a9f1",
+      "source_asset": "indy-open-wristband-s78g-433-v0.1.8.bin",
+      "size": 107116,
+      "sha256": "f472aa700f8cb91d619291c8a4acd2bdda85d99a94a8aa4fa773d4420d3c33b9",
       "module": "S78G",
       "radio": "SX1278",
       "frequency": "433.775 MHz"
     },
     "s76g868": {
-      "version": "v0.1.7",
+      "version": "v0.1.8",
       "url": "firmware/indy-open-wristband-s76g-868-latest.bin",
-      "source_asset": "indy-open-wristband-s76g-868-v0.1.7.bin",
-      "size": 107076,
-      "sha256": "207e1a990496b11bd5ae28075e3754262380420a910623185dc0b3dc9832f92d",
+      "source_asset": "indy-open-wristband-s76g-868-v0.1.8.bin",
+      "size": 107116,
+      "sha256": "c45ec201ee7a517990cff90722d5306a4236ea446c4463f7ba252ff61392102a",
       "module": "S76G",
       "radio": "SX1276",
       "frequency": "868.200 MHz"
     },
     "s76g915": {
-      "version": "v0.1.7",
+      "version": "v0.1.8",
       "url": "firmware/indy-open-wristband-s76g-915-latest.bin",
-      "source_asset": "indy-open-wristband-s76g-915-v0.1.7.bin",
-      "size": 107076,
-      "sha256": "ffd32e51b3723d289093814f1a010e8d00084ddf426a3acbb8e77a3396a0eef0",
+      "source_asset": "indy-open-wristband-s76g-915-v0.1.8.bin",
+      "size": 107116,
+      "sha256": "7909b818023e17c143bec79a672c4e1f21eaa9a8a707e8ac8b6b193db6852ecf",
       "module": "S76G",
       "radio": "SX1276",
       "frequency": "915.000 MHz"
