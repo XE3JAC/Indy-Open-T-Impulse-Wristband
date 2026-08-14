@@ -909,20 +909,31 @@ ${fw.version || ""}
     await flashFirmware();
   }catch(e){
     setProgress(0);
-    let message = e?.message || String(e);
-    if(String(message).includes("No memory map available")){
-      message = "No fue posible obtener el mapa de memoria de la T-Impulse. No se realizó ningún cambio.";
-    }else if(
-      String(message).includes("ERASE_SECTOR") ||
-      String(message).includes("controlTransferOut") ||
-      String(message).includes("special DfuSe command")
-    ){
-      message =
-        "No fue posible preparar el dispositivo para la instalación. " +
-        "Desconecta la T-Impulse, vuelve a conectarla y prueba nuevamente.";
+
+    const technicalMessage = e?.message || String(e);
+    let userMessage = technicalMessage;
+
+    const dfuCommunicationError =
+      /controlTransfer(In|Out)/i.test(technicalMessage) ||
+      /special DfuSe command/i.test(technicalMessage) ||
+      /ERASE_SECTOR/i.test(technicalMessage) ||
+      /SET_ADDRESS/i.test(technicalMessage) ||
+      /dfuERROR/i.test(technicalMessage) ||
+      /transfer error/i.test(technicalMessage);
+
+    if(String(technicalMessage).includes("No memory map available") || dfuCommunicationError){
+      userMessage =
+        "No se pudo comunicar con la T-Impulse. " +
+        "Verifica que esté en modo DFU, desconecta y vuelve a conectar el USB.";
     }
-    setResult(message, "error");
-    log(`ERROR: ${message}`);
+
+    setResult(userMessage, "error");
+
+    // Mensaje simple para el usuario; detalle técnico en consola.
+    log(`ERROR: ${userMessage}`);
+    if(userMessage !== technicalMessage){
+      log(`DETALLE TÉCNICO: ${technicalMessage}`);
+    }
   }
 });
 
