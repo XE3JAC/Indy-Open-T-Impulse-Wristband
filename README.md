@@ -17,7 +17,7 @@ información útil como hora, satélites, batería y estado de transmisión.
 > Si quieres seguir la evolución del proyecto, utiliza ⭐ **Star** y 👀
 > **Watch** en GitHub para recibir las próximas actualizaciones.
 >
-> La interfaz y controles descritos corresponden al firmware `v0.1.4` o posterior.
+> La interfaz y controles descritos corresponden al firmware `v0.1.8` o posterior.
 
 ------------------------------------------------------------------------
 
@@ -116,7 +116,9 @@ Reloj → GPS → APRS → Batería → Modo → Reloj
 
 ### 1. Reloj
 
-Muestra la hora local y el indicativo APRS.
+Muestra la hora local y el indicativo APRS, pero solo cuando existe un fix GPS reciente.
+
+Antes de contar con fix, muestra el tiempo desde el encendido para no presentar como válida una hora GNSS aislada.
 
 ```text
 09:55 PM
@@ -132,6 +134,8 @@ GPS = FIJADO
 8 SATELITES
 ```
 
+Si todavía no existe una posición válida, muestra `GPS = BUSCANDO`. Si no hay satélites, muestra `NINGUNO`.
+
 ### 3. APRS
 
 Muestra si APRS está habilitado, el total de transmisiones confirmadas desde el encendido y el tiempo estimado para la próxima baliza.
@@ -142,14 +146,24 @@ TX = 15
 PROX = 00:15
 ```
 
+Mientras no exista un fix GPS reciente, muestra:
+
+```text
+PROX = SIN GPS
+```
+
+En ese estado no se construye ni se transmite ninguna baliza. El contador `TX` solo aumenta después de una confirmación `TX OK` del radio.
+
 ### 4. Batería
 
-Muestra voltaje y porcentaje aproximado calculado mediante ADC.
+Muestra voltaje y porcentaje aproximado calculado mediante ADC1 / canal 14.
 
 ```text
 BATERIA
 3.19V 82%
 ```
+
+La lectura promedia 20 muestras y se filtra para evitar saltos durante transmisiones LoRa.
 
 > La conversión de voltaje y porcentaje continúa en proceso de calibración con mediciones reales de batería cargada y descargada.
 
@@ -168,7 +182,8 @@ Puede mostrar `ACTIVO` o `AHORRO`.
 
 - **Toque breve:** cambia a la siguiente pantalla.
 - **Doble toque:** alterna entre modo **ACTIVO** y **AHORRO**.
-- **Toque largo de 2 segundos:** apaga la pulsera entrando en suspensión profunda.
+- **Tres toques breves:** apaga la pulsera entrando en suspensión profunda.
+- **Toque largo de 2 segundos:** también apaga la pulsera entrando en suspensión profunda.
 - Con la pantalla apagada, el primer toque la despierta conservando la pantalla anterior.
 
 ### Modos de consumo
@@ -176,8 +191,22 @@ Puede mostrar `ACTIVO` o `AHORRO`.
 | Modo | Pantalla | GNSS |
 |---|---|---|
 | Activo | Se apaga a los 10 s | Permanece encendido |
-| Ahorro | Se apaga a los 5 s | Se suspende para ahorrar energía y despierta periódicamente |
+| Ahorro | Se apaga a los 5 s | Tras 45 s con fix o 60 s sin fix, se apaga; vuelve cada 2 min o con un toque |
 
+------------------------------------------------------------------------
+
+## 🛠️ Diagnóstico por USB
+
+El puerto serie funciona a **115200 baudios**.
+
+- `GPS CMD ...: OK` / `SIN ACK`: resultado de comandos de inicialización GNSS.
+- `GPS RECOVERY: SIN NMEA`: el firmware intenta recuperar el GNSS si deja de recibir datos.
+- `GPS RX: xxxx SAT: n FIX: SI/NO LOC_AGE: ...`: estado de recepción GNSS.
+- `TX START: ...`: baliza que se intenta transmitir.
+- `TX OK: xxxx ms`: transmisión confirmada por el SX127x.
+- `TX ERROR: ...`: transmisión no confirmada.
+- `BAT RAW: xxxx CALC: x.xxV nn%`: lectura de batería usada para calibración.
+- `BATERIA CRITICA: TX BLOQUEADO; APAGADO SEGURO`: se bloquea TX y el equipo entra en suspensión profunda.
 
 ------------------------------------------------------------------------
 

@@ -105,7 +105,7 @@ footer{border-top:1px solid var(--line);padding-top:24px;color:var(--muted)}
 
 <main>
 <header class="hero"><div>
-  <div>Indy Open Project by XE3JAC · Firmware v0.1.4 o posterior</div>
+  <div>Indy Open Project by XE3JAC · Firmware v0.1.8 o posterior</div>
   <h1>INDY OPEN<br>WRISTBAND</h1>
   <p>Manual de uso de Indy Open T-Impulse Wristband: pantallas, controles, GNSS, APRS, batería, modos de consumo y diagnóstico.</p>
   <div class="tags">
@@ -121,7 +121,7 @@ footer{border-top:1px solid var(--line);padding-top:24px;color:var(--muted)}
 
 <section id="general">
 <h2>1. Descripción general</h2>
-<p>Esta guía describe el uso del firmware <code>v0.1.4</code> o posterior. La pulsera debe tener un firmware que incluya el bloque <code>FirmwareConfigBlock</code> y haber sido configurada desde el Web Flasher con el perfil de radio correcto.</p>
+<p>Esta guía describe el uso del firmware <code>v0.1.8</code> o posterior. La pulsera debe tener un firmware que incluya el bloque <code>FirmwareConfigBlock</code> y haber sido configurada desde el Web Flasher con el perfil de radio correcto.</p>
 <div class="cards">
   <div class="card"><strong>Reloj</strong><p>Hora local e indicativo APRS.</p></div>
   <div class="card"><strong>GPS</strong><p>Estado de fix y número de satélites.</p></div>
@@ -154,7 +154,8 @@ footer{border-top:1px solid var(--line);padding-top:24px;color:var(--muted)}
 <tbody>
 <tr><td>Toque breve</td><td>Cambia a la siguiente pantalla.</td></tr>
 <tr><td>Doble toque</td><td>Alterna entre modo <strong>ACTIVO</strong> y <strong>AHORRO</strong>.</td></tr>
-<tr><td>Toque largo de 2 s</td><td>Apaga la pulsera y entra en suspensión profunda.</td></tr>
+<tr><td>Tres toques breves</td><td>Apaga la pulsera y entra en suspensión profunda.</td></tr>
+<tr><td>Toque largo de 2 s</td><td>También apaga la pulsera y entra en suspensión profunda.</td></tr>
 </tbody>
 </table>
 
@@ -165,7 +166,8 @@ La interfaz utiliza una etiqueta pequeña, un dato principal grande y un detalle
 
 <section id="reloj">
 <h2>4. Reloj</h2>
-<p>Muestra la hora local en grande y el indicativo APRS debajo. Antes de contar con hora GNSS muestra el tiempo desde el encendido.</p>
+<p>Muestra la hora local en grande y el indicativo APRS debajo, pero solo cuando existe un fix de posición GPS reciente.</p>
+<p>Antes de contar con fix muestra el tiempo desde el encendido, para no presentar como válida una hora GNSS aislada.</p>
 <pre>09:55 PM
 XE3JAC-9</pre>
 </section>
@@ -184,6 +186,8 @@ XE3JAC-9</pre>
 <pre>APRS = ON
 TX = 15
 PROX = 00:15</pre>
+<p>Mientras no exista un fix GPS reciente, la tercera línea cambia a <code>PROX = SIN GPS</code>.</p>
+<div class="note">En ese estado no se construye ni se transmite ninguna baliza. El contador <code>TX</code> solo aumenta después de una confirmación <code>TX OK</code> del radio.</div>
 </section>
 
 <section id="bateria">
@@ -191,17 +195,14 @@ PROX = 00:15</pre>
 <p>Muestra el voltaje y el porcentaje aproximado calculado a partir de ADC1 / canal 14. La lectura promedia 20 muestras y se filtra para evitar saltos durante una transmisión LoRa.</p>
 <pre>BATERIA
 3.19V 82%</pre>
-<div class="note warn">
-<strong>Calibración:</strong> el voltaje y porcentaje son provisionales hasta calibrarlos con mediciones reales de batería cargada y descargada.
-</div>
+<div class="note warn"><strong>Calibración:</strong> el voltaje y porcentaje siguen siendo provisionales hasta calibrarlos con una batería cargada y descargada reales.</div>
 </section>
 
 <section id="modo">
 <h2>8. Modo</h2>
-<p>Muestra el modo de consumo vigente: <code>ACTIVO</code> o <code>AHORRO</code>. El texto <code>DOBLE TOQUE</code> recuerda el gesto para alternar entre ambos.</p>
+<p>Muestra el modo de consumo vigente: <code>ACTIVO</code> o <code>AHORRO</code>.</p>
 <pre>MODO
-AHORRO
-DOBLE TOQUE</pre>
+AHORRO</pre>
 </section>
 
 <section id="consumo">
@@ -219,11 +220,9 @@ DOBLE TOQUE</pre>
 
 <section id="apagado">
 <h2>10. Apagar y despertar</h2>
-<p>Mantenga el sensor <strong>2 segundos</strong> y luego suéltelo para entrar en suspensión profunda. La radio, GNSS y pantalla se apagan.</p>
-<p>Toque el sensor para despertar; la pulsera reinicia el firmware.</p>
-<div class="note">
-El apagado automático de pantalla no apaga el firmware: GPS, LoRa, APRS y los temporizadores continúan funcionando. El primer toque solo despierta la pantalla y conserva la página anterior; el segundo toque pasa a la siguiente pantalla.
-</div>
+<p>Dé <strong>tres toques breves</strong> al sensor para entrar en suspensión profunda. También puede mantenerlo <strong>2 segundos</strong> y soltarlo.</p>
+<p>La radio, GNSS y pantalla se apagan. Toque el sensor para despertar; la pulsera reinicia el firmware.</p>
+<div class="note">El apagado automático de pantalla no apaga el firmware: GPS, LoRa, APRS y los temporizadores continúan funcionando. El primer toque solo despierta la pantalla y conserva la página anterior; el segundo toque pasa a la siguiente pantalla.</div>
 </section>
 
 <section id="tx">
@@ -252,11 +251,14 @@ No hay baliza manual por toque, para evitar transmisiones accidentales mientras 
 <tr><td><code>SCREEN HOME</code>, <code>SCREEN GPS</code>, <code>SCREEN APRS</code>, <code>SCREEN BATERIA</code>, <code>SCREEN MODO</code></td><td>Cambio de pantalla.</td></tr>
 <tr><td><code>POWER MODE ACTIVO</code> / <code>POWER MODE AHORRO</code></td><td>Cambio de modo.</td></tr>
 <tr><td><code>GPS SLEEP (ahorro)</code> / <code>GPS WAKE (...)</code></td><td>Ciclo de GNSS en Ahorro.</td></tr>
+<tr><td><code>GPS CMD ...: OK</code> / <code>SIN ACK</code></td><td>Resultado de cada comando de inicialización del CXD5603GF.</td></tr>
+<tr><td><code>GPS RECOVERY: SIN NMEA</code></td><td>Tras 15 s sin bytes NMEA en modo Activo, reinicia alimentación, reset, UART y comandos GNSS. Después de tres intentos espera 2 min.</td></tr>
+<tr><td><code>GPS RX: xxxx SAT: n FIX: SI/NO LOC_AGE: ...</code></td><td>Recepción NMEA, satélites, estado de posición y antigüedad de la última coordenada.</td></tr>
 <tr><td><code>TX - OFF: transmision bloqueada</code></td><td>TX no está autorizado por la configuración.</td></tr>
 <tr><td><code>TX START: ...</code></td><td>Trama de baliza que se intenta transmitir.</td></tr>
-<tr><td><code>TX OK: xxxx ms</code></td><td>El SX127x confirmó <code>TX_DONE</code>.</td></tr>
-<tr><td><code>TX ERROR: radio ocupado</code> / <code>TX ERROR: timeout xxxx ms</code></td><td>No hubo transmisión confirmada.</td></tr>
-<tr><td><code>BAT RAW: xxxx</code></td><td>Promedio filtrado de la medición de batería para calibración.</td></tr>
+<tr><td><code>TX OK: xxxx ms</code></td><td>El SX127x confirmó <code>TX_DONE</code>; el tiempo incluye la emisión.</td></tr>
+<tr><td><code>TX ERROR: radio ocupado</code> / <code>TX ERROR: timeout xxxx ms</code></td><td>No hubo transmisión confirmada; el firmware devuelve radio y antena a reposo y continúa operando.</td></tr>
+<tr><td><code>BAT RAW: xxxx CALC: x.xxV nn%</code></td><td>Promedio filtrado y conversión provisional; úselo junto con una medición de multímetro para calibración.</td></tr>
 <tr><td><code>BATERIA CRITICA: TX BLOQUEADO; APAGADO SEGURO</code></td><td>El promedio ADC bajó de 2150; se bloquea TX y entra en suspensión profunda.</td></tr>
 </tbody>
 </table>
